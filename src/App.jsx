@@ -1,0 +1,65 @@
+// App.jsx (Corrected)
+import { Routes, Route, Navigate } from "react-router-dom";
+// NOTE: Remove 'import { BrowserRouter as Router, ... }'
+// NOTE: Remove 'import AuthProvider from "./context/AuthProvider";'
+
+import useAuth from "./context/useAuth";
+import Navigation from "./components/Navigation";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import User from "./pages/userCrud/User";
+
+import "./App.css";
+import ProductsPage from "./pages/productsPage/ProductsPage";
+
+// Protected Route Component (Keep this)
+const ProtectedRoute = ({ children, adminOnly = false }) => {
+  const { user, loading, isAdmin } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (adminOnly && !isAdmin()) {
+    return <Navigate to="/products" />;
+  }
+
+  return children;
+};
+
+function App() {
+  return (
+    <div>
+      {" "}
+      <Navigation />
+      <Routes>
+        <Route path="/register" element={<Register />} />
+
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/products"
+          element={
+            <ProtectedRoute>
+              <ProductsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute adminOnly>
+              <User />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/" element={<Navigate to="/products" />} />
+      </Routes>
+    </div>
+  );
+}
+
+export default App;
