@@ -1,13 +1,14 @@
-// src/pages/ProductDisplayAndSearch.jsx - Beautiful & Responsive Product Catalog
+// src/pages/ProductDisplayAndSearch.jsx - ProductView without floating cart dialog
 
 import React, { useState, useEffect, useMemo } from "react";
 import axiosClient from "../../api/axiosClient";
+import { useCart } from "../../context/CartContext";
+import AddToCartDialog from "../../components/AddToCartDialog";
 import {
   Container,
   Box,
   Typography,
   Grid,
-  CircularProgress,
   Alert,
   TextField,
   FormControl,
@@ -26,18 +27,22 @@ import {
   Skeleton,
   InputAdornment,
   Badge,
+  IconButton,
+  Snackbar,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { styled, alpha } from "@mui/material/styles";
 
 const API_PRODUCT_BASE = "/products";
 const API_CATEGORY_BASE = "/categories";
 
-// Styled Components for Modern Design
+// Styled Components (same as before)
 const StyledCard = styled(Card)(({ theme }) => ({
   height: "100%",
   borderRadius: "20px",
@@ -155,13 +160,24 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-const ProductDisplayAndSearch = () => {
+const ProductView = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [addToCartDialogOpen, setAddToCartDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // Use the custom cart hook
+  const {
+    snackbarOpen,
+    snackbarMessage,
+    addMultipleVariantsToCart,
+    addItemToCart,
+    closeSnackbar,
+  } = useCart();
 
   // Data Fetching
   useEffect(() => {
@@ -208,12 +224,28 @@ const ProductDisplayAndSearch = () => {
     return filtered;
   }, [products, searchTerm, selectedCategory]);
 
+  const handleAddToCart = (product) => {
+    if (product.variants.length === 1) {
+      // Single variant - add directly
+      addItemToCart(product, product.variants[0], 1);
+    } else {
+      // Multiple variants - open checkbox dialog
+      setSelectedProduct(product);
+      setAddToCartDialogOpen(true);
+    }
+  };
+
+const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
+  addMultipleVariantsToCart(product, selectedVariants, quantities);
+};
+
+
   const handleClearFilters = () => {
     setSearchTerm("");
     setSelectedCategory("");
   };
 
-  // Loading Skeleton
+  // Loading Skeleton Component
   const ProductSkeleton = () => (
     <Grid container spacing={3}>
       {[...Array(6)].map((_, index) => (
@@ -284,6 +316,15 @@ const ProductDisplayAndSearch = () => {
       (sum, variant) => sum + variant.stockQty,
       0
     );
+    const isOutOfStock = totalStock === 0;
+
+    // Calculate price range for multiple variants
+    const prices = product.variants.map(v => v.price);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const priceDisplay = hasMultipleVariants && minPrice !== maxPrice 
+      ? `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
+      : `₹${mainVariant ? mainVariant.price.toFixed(2) : "N/A"}`;
 
     return (
       <Fade in={true} timeout={300 + index * 100}>
@@ -351,6 +392,26 @@ const ProductDisplayAndSearch = () => {
                 </Badge>
               </Box>
             )}
+            {isOutOfStock && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 16,
+                  left: 16,
+                  zIndex: 1,
+                }}
+              >
+                <Chip
+                  label="Out of Stock"
+                  color="error"
+                  size="small"
+                  sx={{
+                    fontWeight: 600,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  }}
+                />
+              </Box>
+            )}
           </Box>
 
           <CardContent sx={{ p: 3 }}>
@@ -403,7 +464,7 @@ const ProductDisplayAndSearch = () => {
                   WebkitTextFillColor: "transparent",
                 }}
               >
-                ₹{mainVariant ? mainVariant.price.toFixed(2) : "N/A"}
+                {priceDisplay}
               </Typography>
               <Chip
                 icon={<TrendingUpIcon />}
@@ -419,7 +480,44 @@ const ProductDisplayAndSearch = () => {
               />
             </Stack>
 
-            {/* Variants Display - Always Expanded */}
+            {/* Add to Cart Button */}
+            <Button
+              fullWidth
+              variant="contained"
+              size="large"
+              startIcon={<ShoppingCartIcon />}
+              onClick={() => handleAddToCart(product)}
+              disabled={isOutOfStock}
+              sx={{
+                mb: 3,
+                borderRadius: "15px",
+                py: 1.5,
+                background: isOutOfStock
+                  ? "linear-gradient(45deg, #9E9E9E, #BDBDBD)"
+                  : hasMultipleVariants
+                  ? "linear-gradient(45deg, #2196F3, #21CBF3)"
+                  : "linear-gradient(45deg, #FF6B6B, #FF8E8E)",
+                "&:hover": {
+                  background: isOutOfStock
+                    ? "linear-gradient(45deg, #9E9E9E, #BDBDBD)"
+                    : hasMultipleVariants
+                    ? "linear-gradient(45deg, #1976D2, #0288D1)"
+                    : "linear-gradient(45deg, #FF5252, #FF7979)",
+                  transform: isOutOfStock ? "none" : "translateY(-2px)",
+                },
+                fontWeight: 600,
+                fontSize: "1rem",
+              }}
+            >
+              {isOutOfStock 
+                ? "Out of Stock" 
+                : hasMultipleVariants 
+                ? "Select Variants"
+                : "Add to Cart"
+              }
+            </Button>
+
+            {/* Variants Display */}
             <Box>
               <Typography
                 variant="subtitle1"
@@ -463,9 +561,10 @@ const ProductDisplayAndSearch = () => {
                         background: "linear-gradient(145deg, #f8f9fa, #e9ecef)",
                         border: "1px solid rgba(0,0,0,0.05)",
                         transition: "all 0.2s ease",
+                        opacity: variant.stockQty === 0 ? 0.5 : 1,
                         "&:hover": {
-                          transform: "translateX(4px)",
-                          boxShadow: "4px 4px 12px rgba(0,0,0,0.1)",
+                          transform: variant.stockQty > 0 ? "translateX(4px)" : "none",
+                          boxShadow: variant.stockQty > 0 ? "4px 4px 12px rgba(0,0,0,0.1)" : "none",
                         },
                       }}
                     >
@@ -480,6 +579,15 @@ const ProductDisplayAndSearch = () => {
                             sx={{ fontWeight: 600, mb: 0.5 }}
                           >
                             {variant.name}
+                            {variant.stockQty === 0 && (
+                              <Chip
+                                label="Out of Stock"
+                                size="small"
+                                color="error"
+                                variant="outlined"
+                                sx={{ ml: 1, fontSize: "0.7rem" }}
+                              />
+                            )}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             Stock: {variant.stockQty} units
@@ -502,7 +610,6 @@ const ProductDisplayAndSearch = () => {
     );
   };
 
-  // Main Component Render
   return (
     <Container maxWidth="xl" sx={{ mt: 2, mb: 8, px: { xs: 2, sm: 3 } }}>
       {/* Hero Section */}
@@ -720,8 +827,36 @@ const ProductDisplayAndSearch = () => {
           </Grid>
         </Grid>
       </Grid>
+
+      {/* Add to Cart Dialog with Checkbox Variants */}
+      <AddToCartDialog
+        open={addToCartDialogOpen}
+        onClose={() => setAddToCartDialogOpen(false)}
+        product={selectedProduct}
+        onAddToCart={handleMultipleVariantsAdd}
+      />
+
+      {/* Success Snackbar for cart additions */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={closeSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <Alert
+          onClose={closeSnackbar}
+          severity="success"
+          icon={<CheckCircleIcon />}
+          sx={{
+            borderRadius: "12px",
+            fontWeight: 600,
+          }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
 
-export default ProductDisplayAndSearch;
+export default ProductView;

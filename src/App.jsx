@@ -11,6 +11,7 @@ import User from "./pages/userCrud/User";
 
 import "./App.css";
 import ProductsPage from "./pages/productsPage/ProductsPage";
+import AdminOrdersPage from "./pages/productsPage/AdminOrdersPage";
 
 // Protected Route Component (Keep this)
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -53,6 +54,14 @@ function App() {
           element={
             <ProtectedRoute adminOnly>
               <User />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/adminOrders"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminOrdersPage />
             </ProtectedRoute>
           }
         />
