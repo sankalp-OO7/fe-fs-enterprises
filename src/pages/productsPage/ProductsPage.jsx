@@ -7,7 +7,7 @@ import ProductView from "./ProductView";
 import ProductManagement from "./ProductManagement";
 import AddProduct from "./AddProduct";
 
-const ProductPage = () => {
+const ProductPage = ({adminOnlyy}) => {
   const [activePage, setActivePage] = useState("products"); // default
 
   const renderPage = () => {
@@ -36,35 +36,38 @@ const ProductPage = () => {
           mb: 4,
         }}
       >
-        <Button
-          variant={activePage === "category" ? "contained" : "outlined"}
-          onClick={() => setActivePage("category")}
-        >
-          Category Page
-        </Button>
+        {adminOnlyy && (
+          <>
+            <Button
+              variant={activePage === "category" ? "contained" : "outlined"}
+              onClick={() => setActivePage("category")}
+            >
+              Category Page
+            </Button>
 
-        <Button
-          variant={activePage === "products" ? "contained" : "outlined"}
-          onClick={() => setActivePage("products")}
-        >
-          Products Page
-        </Button>
+            <Button
+              variant={activePage === "products" ? "contained" : "outlined"}
+              onClick={() => setActivePage("products")}
+            >
+              Products Page
+            </Button>
 
-        <Button
-          variant={activePage === "management" ? "contained" : "outlined"}
-          onClick={() => setActivePage("management")}
-        >
-          Product Management
-        </Button>
+            <Button
+              variant={activePage === "management" ? "contained" : "outlined"}
+              onClick={() => setActivePage("management")}
+            >
+              Product Management
+            </Button>
 
-        <Button
-          variant={activePage === "addProduct" ? "contained" : "outlined"}
-          onClick={() => setActivePage("addProduct")}
-        >
-          + Add Product{" "}
-        </Button>
+            <Button
+              variant={activePage === "addProduct" ? "contained" : "outlined"}
+              onClick={() => setActivePage("addProduct")}
+            >
+              + Add Product{" "}
+            </Button>
+          </>
+        )}
       </Box>
-
       {/* Render Selected Page */}
       <Box>{renderPage()}</Box>
     </Container>

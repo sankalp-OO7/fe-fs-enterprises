@@ -16,7 +16,7 @@ import AdminOrdersPage from "./pages/productsPage/AdminOrdersPage";
 // Protected Route Component (Keep this)
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading, isAdmin } = useAuth();
-
+  
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -33,6 +33,9 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 };
 
 function App() {
+  const { isAdmin } = useAuth();
+  console.log(isAdmin());
+  
   return (
     <div>
       {" "}
@@ -45,7 +48,7 @@ function App() {
           path="/products"
           element={
             <ProtectedRoute>
-              <ProductsPage />
+              <ProductsPage adminOnlyy={isAdmin()} />
             </ProtectedRoute>
           }
         />
