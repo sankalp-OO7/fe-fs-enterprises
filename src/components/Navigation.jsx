@@ -166,6 +166,15 @@ const Navigation = () => {
     })();
   };
 
+  const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
+
+  const handleLogoutClick = () => setLogoutDialogOpen(true);
+  const handleLogoutConfirm = () => {
+    setLogoutDialogOpen(false);
+    logout();
+  };
+  const handleLogoutCancel = () => setLogoutDialogOpen(false);
+
   return (
     <>
       <AppBar position="static" elevation={2}>
@@ -207,41 +216,41 @@ const Navigation = () => {
                     Users
                   </Button>
                 )}
-
-                <IconButton
-                  color="inherit"
-                  onClick={openCart}
-                  size="large"
-                  aria-label="open cart"
-                  sx={{ ml: 0.5 }}
-                >
-                  <Badge
-                    badgeContent={getTotalCartItems()}
-                    color="error"
-                    overlap="circular"
-                    anchorOrigin={{ vertical: "top", horizontal: "right" }}
-                    invisible={getTotalCartItems() === 0}
-                    sx={{
-                      "& .MuiBadge-badge": {
-                        minWidth: 15,
-                        height: 15,
-                        px: 0.25,                        
-                        fontSize: 9,
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        borderRadius: "50%",
-                        border: "2px solid",
-                        borderColor: "background.paper",
-                        boxShadow: 1,
-                        transform: "translate(4px, -4px)",
-                      },
-                    }}
+                {!isAdmin() && (
+                  <IconButton
+                    color="inherit"
+                    onClick={openCart}
+                    size="large"
+                    aria-label="open cart"
+                    sx={{ ml: 0.5 }}
                   >
-                    <ShoppingCartIcon />
-                  </Badge>
-                </IconButton>
-
-                <Button color="inherit" onClick={logout} sx={S.navButton}>
+                    <Badge
+                      badgeContent={getTotalCartItems()}
+                      color="error"
+                      overlap="circular"
+                      anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                      invisible={getTotalCartItems() === 0}
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          minWidth: 15,
+                          height: 15,
+                          px: 0.25,
+                          fontSize: 9,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          borderRadius: "50%",
+                          border: "2px solid",
+                          borderColor: "background.paper",
+                          boxShadow: 1,
+                          transform: "translate(4px, -4px)",
+                        },
+                      }}
+                    >
+                      <ShoppingCartIcon />
+                    </Badge>
+                  </IconButton>
+                )}
+                <Button color="inherit" onClick={handleLogoutClick} sx={S.navButton}>
                   Logout
                 </Button>
               </>
@@ -437,6 +446,26 @@ const Navigation = () => {
               </Box>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={handleLogoutCancel}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirm Logout</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to log out?</Typography>
+          <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+            <Button onClick={handleLogoutCancel} color="primary" variant="outlined">
+              Cancel
+            </Button>
+            <Button onClick={handleLogoutConfirm} color="error" variant="contained">
+              Logout
+            </Button>
+          </Stack>
         </DialogContent>
       </Dialog>
     </>

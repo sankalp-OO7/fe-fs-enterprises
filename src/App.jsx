@@ -21,9 +21,9 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     return <div>Loading...</div>;
   }
 
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
+  // if (!user) {
+  //   return <Navigate to="/login" />;
+  // }
 
   if (adminOnly && !isAdmin()) {
     return <Navigate to="/products" />;
@@ -33,7 +33,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 };
 
 function App() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isAuthenticated } = useAuth();
   console.log(isAdmin());
   
   return (
@@ -48,7 +48,7 @@ function App() {
           path="/products"
           element={
             <ProtectedRoute>
-              <ProductsPage adminOnlyy={isAdmin()} />
+              <ProductsPage adminOnlyy={isAdmin()} isAuthenticated={isAuthenticated}/>
             </ProtectedRoute>
           }
         />

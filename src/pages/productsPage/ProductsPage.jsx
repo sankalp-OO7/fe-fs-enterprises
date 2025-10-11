@@ -7,21 +7,22 @@ import ProductView from "./ProductView";
 import ProductManagement from "./ProductManagement";
 import AddProduct from "./AddProduct";
 
-const ProductPage = ({adminOnlyy}) => {
+const ProductPage = ({adminOnlyy, isAuthenticated}) => {
   const [activePage, setActivePage] = useState("products"); // default
-
+  console.log(adminOnlyy,"adminOnlyy prop in ProductPage");
+  
   const renderPage = () => {
     switch (activePage) {
       case "category":
         return <CategoryPage />;
       case "products":
-        return <ProductView />;
+        return <ProductView isAdmin={adminOnlyy} isAuthenticated={isAuthenticated} />;
       case "management":
         return <ProductManagement />;
       case "addProduct":
         return <AddProduct />;
       default:
-        return <ProductView />;
+        return <ProductView isAdmin={adminOnlyy} isAuthenticated={isAuthenticated} />;
     }
   };
 

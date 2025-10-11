@@ -160,7 +160,7 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-const ProductView = () => {
+const ProductView = ({isAdmin, isAuthenticated}) => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -169,7 +169,8 @@ const ProductView = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [addToCartDialogOpen, setAddToCartDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-
+  console.log(isAdmin,"isAdmin prop in ProductView");
+  
   // Use the custom cart hook
   const {
     snackbarOpen,
@@ -305,7 +306,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
   }
 
   // Enhanced Product Card Component
-  const ProductCard = ({ product, index }) => {
+  const ProductCard = ({ product, index, isAdmin , isAuthenticated}) => {
     const categoryName =
       product.categoryId?.name ||
       categories.find((c) => c._id === product.categoryId)?.name ||
@@ -453,7 +454,8 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
               alignItems="center"
               sx={{ mb: 3 }}
             >
-              <Typography
+              {( !isAuthenticated ? !isAdmin : false) ? null :
+                <Typography
                 variant="h4"
                 sx={{
                   fontWeight: 900,
@@ -465,7 +467,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
                 }}
               >
                 {priceDisplay}
-              </Typography>
+              </Typography>}
               <Chip
                 icon={<TrendingUpIcon />}
                 label={`${totalStock} in stock`}
@@ -481,6 +483,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
             </Stack>
 
             {/* Add to Cart Button */}
+            {(!isAdmin && isAuthenticated) && 
             <Button
               fullWidth
               variant="contained"
@@ -516,6 +519,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
                 : "Add to Cart"
               }
             </Button>
+  }
 
             {/* Variants Display */}
             <Box>
@@ -780,7 +784,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
             {filteredProducts.length > 0 ? (
               filteredProducts.map((product, index) => (
                 <Grid item key={product._id} xs={12} sm={6} xl={4}>
-                  <ProductCard product={product} index={index} />
+                  <ProductCard product={product} index={index} isAdmin={isAdmin} isAuthenticated={isAuthenticated}/>
                 </Grid>
               ))
             ) : (
