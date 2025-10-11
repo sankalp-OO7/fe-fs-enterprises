@@ -12,7 +12,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Stack,
   List,
   ListItem,
@@ -32,6 +31,82 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axiosClient from "../api/axiosClient";
 
+const GRADIENT = "linear-gradient(45deg, #4CAF50, #8BC34A)";
+const GRADIENT_HOVER = "linear-gradient(45deg, #45a049, #7CB342)";
+
+const S = {
+  navButton: {
+    textTransform: "none",
+    fontWeight: 600,
+    borderRadius: 2,
+    px: 2,
+    "&:hover": {
+      backgroundColor: "primary.dark",
+      color: "white",
+    },
+    transition: (t) =>
+      t.transitions.create(["background-color", "box-shadow"], {
+        duration: t.transitions.duration.short,
+      }),
+  },
+  cartBadge: {
+    "& .MuiBadge-badge": {
+      fontWeight: 700,
+      transform: "scale(0.95)",
+    },
+  },
+  dialogPaper: {
+    borderRadius: 3,
+    maxHeight: { xs: "90vh", sm: "80vh" },
+  },
+  emptyCartIcon: { fontSize: "4rem", color: "text.secondary", mb: 2 },
+  list: {
+    maxHeight: { xs: 360, sm: 400 },
+    overflowY: "auto",
+    pt: 0,
+    pb: 0,
+    "&::-webkit-scrollbar": { width: 8 },
+    "&::-webkit-scrollbar-thumb": {
+      backgroundColor: "rgba(0,0,0,0.2)",
+      borderRadius: 8,
+    },
+    "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+  },
+  qtyButton: {
+    border: "1px solid",
+    borderColor: "divider",
+    "&:hover": { bgcolor: "action.hover" },
+    transition: (t) =>
+      t.transitions.create(["background-color", "border-color"], {
+        duration: t.transitions.duration.shortest,
+      }),
+  },
+  totalBar: {
+    p: 3,
+    bgcolor: "background.paper",
+    borderTop: "1px solid rgba(0,0,0,0.12)",
+  },
+  checkoutBtn: {
+    borderRadius: "15px",
+    py: 1.5,
+    background: GRADIENT,
+    fontWeight: 600,
+    fontSize: "1.1rem",
+    transition: (t) =>
+      t.transitions.create(["background", "transform"], {
+        duration: t.transitions.duration.short,
+      }),
+    "&:hover": {
+      background: GRADIENT_HOVER,
+      transform: "translateY(-1px)",
+    },
+  },
+  clearBtn: {
+    textTransform: "none",
+    fontWeight: 600,
+  },
+};
+
 const Navigation = () => {
   const { user, logout, isAdmin } = useAuth();
   const [loading, setLoading] = React.useState(false);
@@ -40,8 +115,6 @@ const Navigation = () => {
   const {
     cart,
     cartOpen,
-    snackbarOpen,
-    snackbarMessage,
     getTotalCartItems,
     getTotalCartValue,
     updateCartItemQuantity,
@@ -49,7 +122,6 @@ const Navigation = () => {
     clearCart,
     openCart,
     closeCart,
-    closeSnackbar,
   } = useCart();
 
   const handleCheckout = () => {
@@ -96,82 +168,99 @@ const Navigation = () => {
 
   return (
     <>
-      <AppBar position="static">
+      <AppBar position="static" elevation={2}>
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Hardware Shop
           </Typography>
+
           <Box>
             {user ? (
               <>
-                <Button
-                  color="inherit"
-                  component={RouterLink}
-                  to="/products"
-                  sx={{
-                    "&:hover": {
-                      backgroundColor: "primary.dark",
-                      color: "white",
-                    },
-                  }}
-                >
-                  Products
-                </Button>
-                {isAdmin() && (
-                  <Button
-                    color="inherit"
-                    component={RouterLink}
-                    to="/users"
-                    sx={{
-                      "&:hover": {
-                        backgroundColor: "primary.dark",
-                        color: "white",
-                      },
-                    }}
-                  >
-                    Users
-                  </Button>
-                )}
                 {isAdmin() && (
                   <Button
                     color="inherit"
                     component={RouterLink}
                     to="/adminOrders"
-                    sx={{
-                      "&:hover": {
-                        backgroundColor: "primary.dark",
-                        color: "white",
-                      },
-                    }}
+                    sx={S.navButton}
                   >
-                    Orders  
+                    Orders List
                   </Button>
                 )}
-                {/* Cart Icon Button with Badge */}
+
+                <Button
+                  color="inherit"
+                  component={RouterLink}
+                  to="/products"
+                  sx={S.navButton}
+                >
+                  Products
+                </Button>
+
+                {isAdmin() && (
+                  <Button
+                    color="inherit"
+                    component={RouterLink}
+                    to="/users"
+                    sx={S.navButton}
+                  >
+                    Users
+                  </Button>
+                )}
+
                 <IconButton
                   color="inherit"
                   onClick={openCart}
                   size="large"
                   aria-label="open cart"
+                  sx={{ ml: 0.5 }}
                 >
                   <Badge
                     badgeContent={getTotalCartItems()}
                     color="error"
+                    overlap="circular"
+                    anchorOrigin={{ vertical: "top", horizontal: "right" }}
                     invisible={getTotalCartItems() === 0}
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        minWidth: 15,
+                        height: 15,
+                        px: 0.25,                        
+                        fontSize: 9,
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        borderRadius: "50%",
+                        border: "2px solid",
+                        borderColor: "background.paper",
+                        boxShadow: 1,
+                        transform: "translate(4px, -4px)",
+                      },
+                    }}
                   >
                     <ShoppingCartIcon />
                   </Badge>
                 </IconButton>
-                <Button color="inherit" onClick={logout}>
+
+                <Button color="inherit" onClick={logout} sx={S.navButton}>
                   Logout
                 </Button>
               </>
             ) : (
               <>
-                <Button color="inherit" component={RouterLink} to="/login">
+                <Button
+                  color="inherit"
+                  component={RouterLink}
+                  to="/login"
+                  sx={S.navButton}
+                >
                   Login
                 </Button>
-                <Button color="inherit" component={RouterLink} to="/register">
+                <Button
+                  color="inherit"
+                  component={RouterLink}
+                  to="/register"
+                  sx={S.navButton}
+                >
                   Register
                 </Button>
               </>
@@ -179,13 +268,13 @@ const Navigation = () => {
           </Box>
         </Toolbar>
       </AppBar>
-      {/* Cart Dialog */}
+
       <Dialog
         open={cartOpen}
         onClose={closeCart}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "20px", maxHeight: "80vh" } }}
+        PaperProps={{ sx: S.dialogPaper }}
       >
         <DialogTitle sx={{ pb: 1 }}>
           <Stack
@@ -199,17 +288,16 @@ const Navigation = () => {
                 Shopping Cart ({getTotalCartItems()} items)
               </Typography>
             </Stack>
-            <IconButton onClick={closeCart}>
+            <IconButton onClick={closeCart} aria-label="close cart">
               <CloseIcon />
             </IconButton>
           </Stack>
         </DialogTitle>
+
         <DialogContent sx={{ p: 0 }}>
           {cart.length === 0 ? (
             <Box sx={{ p: 4, textAlign: "center" }}>
-              <ShoppingCartIcon
-                sx={{ fontSize: "4rem", color: "text.secondary", mb: 2 }}
-              />
+              <ShoppingCartIcon sx={S.emptyCartIcon} />
               <Typography variant="h6" color="text.secondary">
                 Your cart is empty
               </Typography>
@@ -219,7 +307,7 @@ const Navigation = () => {
             </Box>
           ) : (
             <>
-              <List sx={{ maxHeight: 400, overflowY: "auto", pt: 0, pb: 0 }}>
+              <List sx={S.list}>
                 {cart.map((item, index) => (
                   <React.Fragment key={item.id}>
                     <ListItem sx={{ py: 2 }}>
@@ -230,6 +318,7 @@ const Navigation = () => {
                           sx={{ width: 60, height: 60, borderRadius: "12px" }}
                         />
                       </ListItemAvatar>
+
                       <ListItemText
                         primary={
                           <MuiTypography variant="h6" sx={{ fontWeight: 600 }}>
@@ -256,52 +345,57 @@ const Navigation = () => {
                         }
                         sx={{ ml: 2 }}
                       />
+
                       <Stack direction="row" alignItems="center" spacing={1}>
                         <MuiIconButton
                           size="small"
+                          sx={S.qtyButton}
                           onClick={() =>
                             updateCartItemQuantity(item.id, item.quantity - 1)
                           }
+                          aria-label="decrease quantity"
                         >
-                          <RemoveIcon />
+                          <RemoveIcon fontSize="small" />
                         </MuiIconButton>
+
                         <Typography
                           sx={{
-                            minWidth: 30,
+                            minWidth: 32,
                             textAlign: "center",
                             fontWeight: 600,
                           }}
                         >
                           {item.quantity}
                         </Typography>
+
                         <MuiIconButton
                           size="small"
+                          sx={S.qtyButton}
                           onClick={() =>
                             updateCartItemQuantity(item.id, item.quantity + 1)
                           }
+                          aria-label="increase quantity"
                         >
-                          <AddIcon />
+                          <AddIcon fontSize="small" />
                         </MuiIconButton>
+
                         <MuiIconButton
                           size="small"
                           color="error"
                           onClick={() => removeFromCart(item.id)}
+                          aria-label="remove item"
                         >
-                          <DeleteIcon />
+                          <DeleteIcon fontSize="small" />
                         </MuiIconButton>
                       </Stack>
                     </ListItem>
+
                     {index < cart.length - 1 && <Divider />}
                   </React.Fragment>
                 ))}
               </List>
-              <Box
-                sx={{
-                  p: 3,
-                  bgcolor: "background.paper",
-                  borderTop: "1px solid rgba(0,0,0,0.12)",
-                }}
-              >
+
+              <Box sx={S.totalBar}>
                 <Stack spacing={2}>
                   <Stack
                     direction="row"
@@ -311,35 +405,30 @@ const Navigation = () => {
                     <Typography variant="h5" sx={{ fontWeight: 700 }}>
                       Total: ₹{getTotalCartValue().toFixed(2)}
                     </Typography>
+
                     <MuiButton
                       variant="outlined"
                       color="error"
                       onClick={clearCart}
                       size="small"
+                      sx={S.clearBtn}
                     >
                       Clear Cart
                     </MuiButton>
                   </Stack>
+
                   <MuiButton
                     fullWidth
                     variant="contained"
                     size="large"
                     onClick={handleCheckout}
                     disabled={loading}
-                    sx={{
-                      borderRadius: "15px",
-                      py: 1.5,
-                      background: "linear-gradient(45deg, #4CAF50, #8BC34A)",
-                      "&:hover": {
-                        background: "linear-gradient(45deg, #45a049, #7CB342)",
-                      },
-                      fontWeight: 600,
-                      fontSize: "1.1rem",
-                    }}
+                    sx={S.checkoutBtn}
                   >
                     {loading ? "Processing..." : "Proceed to Checkout"}
                   </MuiButton>
                 </Stack>
+
                 {error && (
                   <Typography color="error" sx={{ mt: 1, mb: 1 }}>
                     {error}
