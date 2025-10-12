@@ -7,27 +7,31 @@ import ProductView from "./ProductView";
 import ProductManagement from "./ProductManagement";
 import AddProduct from "./AddProduct";
 
-const ProductPage = ({adminOnlyy, isAuthenticated}) => {
+const ProductPage = ({ adminOnlyy, isAuthenticated }) => {
   const [activePage, setActivePage] = useState("products"); // default
-  console.log(adminOnlyy,"adminOnlyy prop in ProductPage");
-  
+  console.log(adminOnlyy, "adminOnlyy prop in ProductPage");
+
   const renderPage = () => {
     switch (activePage) {
       case "category":
         return <CategoryPage />;
       case "products":
-        return <ProductView isAdmin={adminOnlyy} isAuthenticated={isAuthenticated} />;
+        return (
+          <ProductView isAdmin={adminOnlyy} isAuthenticated={isAuthenticated} />
+        );
       case "management":
         return <ProductManagement />;
       case "addProduct":
         return <AddProduct />;
       default:
-        return <ProductView isAdmin={adminOnlyy} isAuthenticated={isAuthenticated} />;
+        return (
+          <ProductView isAdmin={adminOnlyy} isAuthenticated={isAuthenticated} />
+        );
     }
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4 }}>
+    <Container maxWidth="xl" sx={{ mt: adminOnlyy ? 2 : 0 }}>
       {/* Buttons Row */}
       <Box
         sx={{
