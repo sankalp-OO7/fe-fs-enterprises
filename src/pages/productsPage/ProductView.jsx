@@ -1,14 +1,13 @@
-// src/pages/ProductDisplayAndSearch.jsx - ProductView without floating cart dialog
+// src/pages/ProductDisplayAndSearch.jsx - Beautiful & Responsive Product Catalog
 
 import React, { useState, useEffect, useMemo } from "react";
 import axiosClient from "../../api/axiosClient";
-import { useCart } from "../../context/CartContext";
-import AddToCartDialog from "../../components/AddToCartDialog";
 import {
   Container,
   Box,
   Typography,
   Grid,
+  CircularProgress,
   Alert,
   TextField,
   FormControl,
@@ -27,22 +26,18 @@ import {
   Skeleton,
   InputAdornment,
   Badge,
-  IconButton,
-  Snackbar,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { styled, alpha } from "@mui/material/styles";
 
 const API_PRODUCT_BASE = "/products";
 const API_CATEGORY_BASE = "/categories";
 
-// Styled Components (same as before)
+// Styled Components for Modern Design
 const StyledCard = styled(Card)(({ theme }) => ({
   height: "100%",
   borderRadius: "20px",
@@ -160,25 +155,13 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-const ProductView = ({isAdmin, isAuthenticated}) => {
+const ProductDisplayAndSearch = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [addToCartDialogOpen, setAddToCartDialogOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  console.log(isAdmin,"isAdmin prop in ProductView");
-  
-  // Use the custom cart hook
-  const {
-    snackbarOpen,
-    snackbarMessage,
-    addMultipleVariantsToCart,
-    addItemToCart,
-    closeSnackbar,
-  } = useCart();
 
   // Data Fetching
   useEffect(() => {
@@ -225,28 +208,12 @@ const ProductView = ({isAdmin, isAuthenticated}) => {
     return filtered;
   }, [products, searchTerm, selectedCategory]);
 
-  const handleAddToCart = (product) => {
-    if (product.variants.length === 1) {
-      // Single variant - add directly
-      addItemToCart(product, product.variants[0], 1);
-    } else {
-      // Multiple variants - open checkbox dialog
-      setSelectedProduct(product);
-      setAddToCartDialogOpen(true);
-    }
-  };
-
-const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
-  addMultipleVariantsToCart(product, selectedVariants, quantities);
-};
-
-
   const handleClearFilters = () => {
     setSearchTerm("");
     setSelectedCategory("");
   };
 
-  // Loading Skeleton Component
+  // Loading Skeleton
   const ProductSkeleton = () => (
     <Grid container spacing={3}>
       {[...Array(6)].map((_, index) => (
@@ -306,7 +273,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
   }
 
   // Enhanced Product Card Component
-  const ProductCard = ({ product, index, isAdmin , isAuthenticated}) => {
+  const ProductCard = ({ product, index }) => {
     const categoryName =
       product.categoryId?.name ||
       categories.find((c) => c._id === product.categoryId)?.name ||
@@ -317,15 +284,6 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
       (sum, variant) => sum + variant.stockQty,
       0
     );
-    const isOutOfStock = totalStock === 0;
-
-    // Calculate price range for multiple variants
-    const prices = product.variants.map(v => v.price);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const priceDisplay = hasMultipleVariants && minPrice !== maxPrice 
-      ? `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
-      : `₹${mainVariant ? mainVariant.price.toFixed(2) : "N/A"}`;
 
     return (
       <Fade in={true} timeout={300 + index * 100}>
@@ -393,26 +351,6 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
                 </Badge>
               </Box>
             )}
-            {isOutOfStock && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  bottom: 16,
-                  left: 16,
-                  zIndex: 1,
-                }}
-              >
-                <Chip
-                  label="Out of Stock"
-                  color="error"
-                  size="small"
-                  sx={{
-                    fontWeight: 600,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                  }}
-                />
-              </Box>
-            )}
           </Box>
 
           <CardContent sx={{ p: 3 }}>
@@ -454,8 +392,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
               alignItems="center"
               sx={{ mb: 3 }}
             >
-              {( !isAuthenticated ? !isAdmin : false) ? null :
-                <Typography
+              <Typography
                 variant="h4"
                 sx={{
                   fontWeight: 900,
@@ -466,8 +403,8 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
                   WebkitTextFillColor: "transparent",
                 }}
               >
-                {priceDisplay}
-              </Typography>}
+                ₹{mainVariant ? mainVariant.price.toFixed(2) : "N/A"}
+              </Typography>
               <Chip
                 icon={<TrendingUpIcon />}
                 label={`${totalStock} in stock`}
@@ -482,46 +419,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
               />
             </Stack>
 
-            {/* Add to Cart Button */}
-            {(!isAdmin && isAuthenticated) && 
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              startIcon={<ShoppingCartIcon />}
-              onClick={() => handleAddToCart(product)}
-              disabled={isOutOfStock}
-              sx={{
-                mb: 3,
-                borderRadius: "15px",
-                py: 1.5,
-                background: isOutOfStock
-                  ? "linear-gradient(45deg, #9E9E9E, #BDBDBD)"
-                  : hasMultipleVariants
-                  ? "linear-gradient(45deg, #2196F3, #21CBF3)"
-                  : "linear-gradient(45deg, #FF6B6B, #FF8E8E)",
-                "&:hover": {
-                  background: isOutOfStock
-                    ? "linear-gradient(45deg, #9E9E9E, #BDBDBD)"
-                    : hasMultipleVariants
-                    ? "linear-gradient(45deg, #1976D2, #0288D1)"
-                    : "linear-gradient(45deg, #FF5252, #FF7979)",
-                  transform: isOutOfStock ? "none" : "translateY(-2px)",
-                },
-                fontWeight: 600,
-                fontSize: "1rem",
-              }}
-            >
-              {isOutOfStock 
-                ? "Out of Stock" 
-                : hasMultipleVariants 
-                ? "Select Variants"
-                : "Add to Cart"
-              }
-            </Button>
-  }
-
-            {/* Variants Display */}
+            {/* Variants Display - Always Expanded */}
             <Box>
               <Typography
                 variant="subtitle1"
@@ -565,10 +463,9 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
                         background: "linear-gradient(145deg, #f8f9fa, #e9ecef)",
                         border: "1px solid rgba(0,0,0,0.05)",
                         transition: "all 0.2s ease",
-                        opacity: variant.stockQty === 0 ? 0.5 : 1,
                         "&:hover": {
-                          transform: variant.stockQty > 0 ? "translateX(4px)" : "none",
-                          boxShadow: variant.stockQty > 0 ? "4px 4px 12px rgba(0,0,0,0.1)" : "none",
+                          transform: "translateX(4px)",
+                          boxShadow: "4px 4px 12px rgba(0,0,0,0.1)",
                         },
                       }}
                     >
@@ -583,15 +480,6 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
                             sx={{ fontWeight: 600, mb: 0.5 }}
                           >
                             {variant.name}
-                            {variant.stockQty === 0 && (
-                              <Chip
-                                label="Out of Stock"
-                                size="small"
-                                color="error"
-                                variant="outlined"
-                                sx={{ ml: 1, fontSize: "0.7rem" }}
-                              />
-                            )}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             Stock: {variant.stockQty} units
@@ -614,6 +502,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
     );
   };
 
+  // Main Component Render
   return (
     <Container maxWidth="xl" sx={{ mt: 2, mb: 8, px: { xs: 2, sm: 3 } }}>
       {/* Hero Section */}
@@ -651,9 +540,18 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
         </Stack>
       </GradientBox>
 
-      <Grid container spacing={{ xs: 2, md: 4 }}>
+      <Grid
+        container
+        spacing={{ xs: 2, md: 4 }}
+        direction={{ xs: "column", lg: "row" }} // 👈 vertical on small, horizontal on large
+      >
         {/* Sidebar Filters */}
-        <Grid item xs={12} lg={3}>
+        <Grid
+          item
+          xs={12} // full width on mobile
+          lg={3} // sidebar on large screens
+          order={{ xs: 1, lg: 1 }} // keep sidebar first
+        >
           <FilterPaper elevation={0}>
             <Typography
               variant="h5"
@@ -669,8 +567,9 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
               🔍 Smart Filters
             </Typography>
 
+            {/* Filters Stack */}
             <Stack spacing={3}>
-              {/* Search Field */}
+              {/* Search */}
               <StyledTextField
                 label="Search Products"
                 variant="outlined"
@@ -757,7 +656,12 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
         </Grid>
 
         {/* Product Grid */}
-        <Grid item xs={12} lg={9}>
+        <Grid
+          item
+          xs={12} // full width on mobile
+          lg={9} // main content on large
+          order={{ xs: 2, lg: 2 }} // keep content second
+        >
           <Box mb={3}>
             <Stack
               direction={{ xs: "column", sm: "row" }}
@@ -784,7 +688,7 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
             {filteredProducts.length > 0 ? (
               filteredProducts.map((product, index) => (
                 <Grid item key={product._id} xs={12} sm={6} xl={4}>
-                  <ProductCard product={product} index={index} isAdmin={isAdmin} isAuthenticated={isAuthenticated}/>
+                  <ProductCard product={product} index={index} />
                 </Grid>
               ))
             ) : (
@@ -831,36 +735,8 @@ const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
           </Grid>
         </Grid>
       </Grid>
-
-      {/* Add to Cart Dialog with Checkbox Variants */}
-      <AddToCartDialog
-        open={addToCartDialogOpen}
-        onClose={() => setAddToCartDialogOpen(false)}
-        product={selectedProduct}
-        onAddToCart={handleMultipleVariantsAdd}
-      />
-
-      {/* Success Snackbar for cart additions */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={closeSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-      >
-        <Alert
-          onClose={closeSnackbar}
-          severity="success"
-          icon={<CheckCircleIcon />}
-          sx={{
-            borderRadius: "12px",
-            fontWeight: 600,
-          }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
     </Container>
   );
 };
 
-export default ProductView;
+export default ProductDisplayAndSearch;
