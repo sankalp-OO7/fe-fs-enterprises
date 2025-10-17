@@ -294,7 +294,7 @@ const MobileNav = ({
                 </ListItemButton>
               </ListItem>
 
-              <ListItem disablePadding>
+              {/* <ListItem disablePadding>
                 <ListItemButton
                   component={RouterLink}
                   to="/register"
@@ -310,7 +310,7 @@ const MobileNav = ({
                   </ListItemIcon>
                   <ListItemText primary="Register" />
                 </ListItemButton>
-              </ListItem>
+              </ListItem> */}
             </List>
           )}
         </Box>

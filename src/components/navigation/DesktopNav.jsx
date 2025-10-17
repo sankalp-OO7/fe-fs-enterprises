@@ -48,7 +48,7 @@ const DesktopNav = ({
               startIcon={<ListAlt />}
               sx={navButtonStyle}
             >
-              Orders
+              Memo Management
             </Button>
           )}
 
@@ -73,34 +73,44 @@ const DesktopNav = ({
           )}
 
           {!isAdmin() && (
-            <IconButton
+            // <IconButton
+            //   onClick={openCart}
+            //   sx={{
+            //     color: "white",
+            //     transition: "all 0.3s ease",
+            //     "&:hover": {
+            //       backgroundColor: "rgba(255,255,255,0.15)",
+            //       transform: "scale(1.1)",
+            //     },
+            //   }}
+            // >
+            //   <Badge
+            //     badgeContent={getTotalCartItems()}
+            //     color="error"
+            //     sx={{
+            //       "& .MuiBadge-badge": {
+            //         fontWeight: 700,
+            //         fontSize: "0.7rem",
+            //         minWidth: 18,
+            //         height: 18,
+            //         border: "2px solid white",
+            //         boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+            //       },
+            //     }}
+            //   >
+            //     Memo Management
+            //     {/* <ShoppingCart /> */}
+            //   </Badge>
+            // </IconButton>
+                        <Button
+              // component={RouterLink}
+              // to="/users"
               onClick={openCart}
-              sx={{
-                color: "white",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  backgroundColor: "rgba(255,255,255,0.15)",
-                  transform: "scale(1.1)",
-                },
-              }}
+              startIcon={<ListAlt />}
+              sx={navButtonStyle}
             >
-              <Badge
-                badgeContent={getTotalCartItems()}
-                color="error"
-                sx={{
-                  "& .MuiBadge-badge": {
-                    fontWeight: 700,
-                    fontSize: "0.7rem",
-                    minWidth: 18,
-                    height: 18,
-                    border: "2px solid white",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                  },
-                }}
-              >
-                <ShoppingCart />
-              </Badge>
-            </IconButton>
+              Memo
+            </Button>
           )}
 
           <ProfileMenu
@@ -121,7 +131,7 @@ const DesktopNav = ({
           >
             Login
           </Button>
-          <Button
+          {/* <Button
             component={RouterLink}
             to="/register"
             startIcon={<PersonAdd />}
@@ -135,7 +145,7 @@ const DesktopNav = ({
             }}
           >
             Register
-          </Button>
+          </Button> */}
         </>
       )}
     </Box>
