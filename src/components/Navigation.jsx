@@ -7,8 +7,10 @@ import DesktopNav from "./navigation/DesktopNav.jsx";
 import MobileNav from "./navigation/MobileNav.jsx";
 import CartDialog from "./navigation/CartDialog.jsx";
 import LogoutDialog from "./navigation/LogoutDialog.jsx";
+import { useNavigate } from "react-router-dom";
 
 const Navigation = () => {
+  const navigate = useNavigate();
   const { user, logout, isAdmin } = useAuth();
   const {
     cart,
@@ -33,6 +35,7 @@ const Navigation = () => {
   };
   const handleLogoutConfirm = () => {
     setLogoutDialogOpen(false);
+    navigate("/");
     logout();
   };
 
@@ -71,6 +74,7 @@ const Navigation = () => {
             handleLogoutClick={handleLogoutClick}
             profileMenuAnchor={profileMenuAnchor}
             setProfileMenuAnchor={setProfileMenuAnchor}
+            cartProps={cartProps}
           />
 
           <MobileNav

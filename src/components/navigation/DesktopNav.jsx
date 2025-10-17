@@ -34,7 +34,10 @@ const DesktopNav = ({
   handleLogoutClick,
   profileMenuAnchor,
   setProfileMenuAnchor,
+  cartProps,
 }) => {
+  console.log(cartProps, "cartProps in DesktopNav");
+  
   return (
     <Box
       sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}
@@ -73,43 +76,44 @@ const DesktopNav = ({
           )}
 
           {!isAdmin() && (
-            // <IconButton
-            //   onClick={openCart}
-            //   sx={{
-            //     color: "white",
-            //     transition: "all 0.3s ease",
-            //     "&:hover": {
-            //       backgroundColor: "rgba(255,255,255,0.15)",
-            //       transform: "scale(1.1)",
-            //     },
-            //   }}
-            // >
-            //   <Badge
-            //     badgeContent={getTotalCartItems()}
-            //     color="error"
-            //     sx={{
-            //       "& .MuiBadge-badge": {
-            //         fontWeight: 700,
-            //         fontSize: "0.7rem",
-            //         minWidth: 18,
-            //         height: 18,
-            //         border: "2px solid white",
-            //         boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-            //       },
-            //     }}
-            //   >
-            //     Memo Management
-            //     {/* <ShoppingCart /> */}
-            //   </Badge>
-            // </IconButton>
-                        <Button
-              // component={RouterLink}
-              // to="/users"
-              onClick={openCart}
+            <Button
+              component={RouterLink}
+              to="/UserMemo"
+              state={{ cart: cartProps.cart }}
               startIcon={<ListAlt />}
-              sx={navButtonStyle}
+              sx={{
+                ...navButtonStyle,
+                minWidth: 140,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 1,
+              }}
+              aria-label={`Memo (${getTotalCartItems()} items)`}
             >
-              Memo
+              <Box sx={{ display: "flex", alignItems: "top", gap: 2.7 }}>
+                <Box component="span">Memo</Box>
+                {getTotalCartItems() > 0 && (
+                  <Badge
+                    badgeContent={getTotalCartItems()}
+                    color="error"
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        transform: "scale(0.95)",
+                        minWidth: 20,
+                        height: 20,
+                        borderRadius: "10px",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        boxShadow: (theme) =>
+                          `0 0 0 2px ${theme.palette.background.paper}`,
+                      },
+                    }}
+                    aria-hidden={false}
+                    aria-label={`${getTotalCartItems()} items in memo`}
+                  />
+                )}
+              </Box>
             </Button>
           )}
 

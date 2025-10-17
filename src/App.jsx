@@ -12,6 +12,7 @@ import User from "./pages/userCrud/User";
 import "./App.css";
 import ProductsPage from "./pages/productsPage/ProductsPage";
 import AdminOrdersPage from "./pages/productsPage/AdminOrdersPage";
+import UserMemo from "./memo/UserMemo";
 
 // Protected Route Component (Keep this)
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -69,6 +70,7 @@ function App() {
           }
         />
         <Route path="/" element={<Navigate to="/products" />} />
+       {isAuthenticated && <Route path="/userMemo" element={<UserMemo />} />}
       </Routes>
     </div>
   );
