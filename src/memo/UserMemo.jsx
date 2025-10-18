@@ -1,54 +1,34 @@
 import React, { useState } from "react";
 import {
-  Box,
-  TextField,
-  Button,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-  Typography,
-  Dialog,
+  Box, TextField, Button, MenuItem, Select, FormControl, InputLabel, 
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, 
+  IconButton, Typography, Dialog
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
-import { useLocation } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 import ProductPage from "../pages/productsPage/ProductsPage";
+import axiosClient from "../api/axiosClient";
 
 const UserMemo = () => {
+  const [openDialog, setOpenDialog] = useState(false);
 
-    const [openDialog, setOpenDialog] = useState(false);
+  // Use cart context for core items
+  const {
+    cart = [],
+    getTotalCartItems,
+    getTotalCartValue,
+    updateCartItemQuantity,
+    removeFromCart,
+    clearCart,
+  } = useCart();
 
-  //get data from router state
-  const location = useLocation();
-  const { cart } = location.state || {};
-//   console.log("cart", cart);
-
+  // Form state only for non-product data
   const [formData, setFormData] = useState({
     name: "",
     gstNo: "",
     billType: "GST",
   });
-
-  const [products, setProducts] = useState(
-    Array.isArray(cart) && cart.length > 0
-      ? cart.map((item) => ({
-          id: item._id,
-          name: item.variant.name,
-          price: item.variant.price,
-          quantity: item.quantity ?? "",
-          total: 0,
-        }))
-      : [{ id: 1, name: "", quantity: "", price: "", total: 0 }]
-  );
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -58,90 +38,74 @@ const UserMemo = () => {
     }));
   };
 
-  const handleProductChange = (id, field, value) => {
-    setProducts((prev) =>
-      prev.map((product) => {
-        if (product.id === id) {
-          const updated = { ...product, [field]: value };
-
-          // Calculate total if quantity or price changes
-          if (field === "quantity" || field === "price") {
-            const qty =
-              field === "quantity"
-                ? parseFloat(value) || 0
-                : parseFloat(product.quantity) || 0;
-            const price =
-              field === "price"
-                ? parseFloat(value) || 0
-                : parseFloat(product.price) || 0;
-            updated.total = qty * price;
-          }
-
-          return updated;
-        }
-        return product;
-      })
-    );
-  };
-
-  const addProduct = () => {
-    const newId = products.length + 1;
-    setProducts((prev) => [
-      ...prev,
-      { id: newId, name: "", quantity: "", price: "", total: 0 },
-    ]);
-  };
-
-  const deleteProduct = (id) => {
-    if (products.length > 1) {
-      setProducts((prev) => prev.filter((product) => product.id !== id));
-    }
-  };
+const handleQuantityChange = (cartItemId, value) => {
+    console.log("Quantity change for item ID:", cartItemId, "New value:", value);
+    const newQty = value === "" ? 0 : parseFloat(value);
+    if(newQty <= 0) return;
+    if (Number.isNaN(newQty)) return;
+    updateCartItemQuantity(cartItemId, newQty);
+};
 
   const calculateEstimateCost = () => {
-    return products.reduce((sum, product) => sum + product.total, 0).toFixed(2);
+    // Best to use cart context value for total, but you can also recalc:
+    return cart
+      .reduce((sum, item) => sum + ((item.variant?.price || 0) * (item.quantity || 0)), 0)
+      .toFixed(2);
   };
 
-  const handlePlaceOrder = () => {
-    const orderData = {
-      ...formData,
-      products: products.filter((p) => p.name && p.quantity && p.price),
-      estimateCost: calculateEstimateCost(),
-    };
-    console.log("Order placed:", orderData);
-    // Add your order submission logic here
+  const handlePlaceOrder = async () => {
+    try {
+      if (cart.length === 0) {
+        return;
+      }
+
+      const orderPayload = {
+        customerName: formData.name,
+        gstNo: formData.gstNo,
+        items: cart.map((item) => ({
+          productId: item.product._id,
+          variantId: item.variant._id,
+          quantity: item.quantity,
+          price: item.variant.price,
+        })),
+        totalAmount: cart.reduce(
+          (sum, item) => sum + item.variant.price * item.quantity,
+          0
+        ),
+        shippingAddress: "123 Demo St, Sample City, Country",
+        paymentMethod: formData.billType,
+        paymentStatus: "Paid",
+      };
+
+      const response = await axiosClient.post("/orders", orderPayload);
+      if (response.status === 201) {
+        alert("Order placed successfully!");
+        clearCart();
+        //clear all data
+        setFormData({
+          name: "",
+          gstNo: "",
+          billType: "GST",
+        });
+        setOpenDialog(false);
+        // closeCart();
+      } else {
+        setError("Failed to place the order. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("An error occurred during checkout.");
+    } 
   };
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
-      {/* Header Section */}
       <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-        <TextField
-          label="Name"
-          name="name"
-          value={formData.name}
-          onChange={handleInputChange}
-          sx={{ flex: 1, minWidth: 200 }}
-          variant="outlined"
-        />
-
-        <TextField
-          label="GST No"
-          name="gstNo"
-          value={formData.gstNo}
-          onChange={handleInputChange}
-          sx={{ flex: 1, minWidth: 200 }}
-          variant="outlined"
-        />
-
+        <TextField label="Name" name="name" value={formData.name} onChange={handleInputChange} sx={{ flex: 1, minWidth: 200 }} variant="outlined"/>
+        <TextField label="GST No" name="gstNo" value={formData.gstNo} onChange={handleInputChange} sx={{ flex: 1, minWidth: 200 }} variant="outlined"/>
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Bill Type</InputLabel>
-          <Select
-            name="billType"
-            value={formData.billType}
-            onChange={handleInputChange}
-            label="Bill Type"
-          >
+          <Select name="billType" value={formData.billType} onChange={handleInputChange} label="Bill Type">
             <MenuItem value="GST">GST</MenuItem>
             <MenuItem value="Bill">Bill</MenuItem>
             <MenuItem value="Estimate">Estimate Cost</MenuItem>
@@ -149,20 +113,17 @@ const UserMemo = () => {
         </FormControl>
       </Box>
 
-      {/* Add Product Button */}
       <Box sx={{ mb: 2 }}>
         <Button
           variant="outlined"
           startIcon={<AddIcon />}
-        //   onClick={addProduct}
-            onClick={() => setOpenDialog(true)}
+          onClick={() => setOpenDialog(true)}
           size="small"
         >
           Add the product
         </Button>
       </Box>
 
-      {/* Products Table */}
       <TableContainer component={Paper} sx={{ mb: 3 }}>
         <Table>
           <TableHead>
@@ -175,63 +136,48 @@ const UserMemo = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
+            {cart.length > 0 ? cart.map(item => (
+              <TableRow key={item._id}>
                 <TableCell>
                   <IconButton
                     size="small"
-                    onClick={() => deleteProduct(product.id)}
-                    disabled={products.length === 1}
+                    onClick={() => removeFromCart(item.id)}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </TableCell>
                 <TableCell>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    value={product.name}
-                    onChange={(e) =>
-                      handleProductChange(product.id, "name", e.target.value)
-                    }
-                    placeholder="Enter product name"
-                  />
+                  <Typography variant="body2">{item.variant?.name || "-"}</Typography>
                 </TableCell>
                 <TableCell>
                   <TextField
-                    fullWidth
-                    size="small"
+                    value={item.quantity ?? ""}
+                    onChange={e => handleQuantityChange(item.id, e.target.value)}
                     type="number"
-                    value={product.quantity}
-                    onChange={(e) =>
-                      handleProductChange(
-                        product.id,
-                        "quantity",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Qty"
-                  />
-                </TableCell>
-                <TableCell>
-                  <TextField
-                    fullWidth
+                    inputProps={{ min: 0, step: "any" }}
                     size="small"
-                    type="number"
-                    value={product.price}
-                    onChange={(e) =>
-                      handleProductChange(product.id, "price", e.target.value)
-                    }
-                    placeholder="Price"
                   />
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    ₹{product.total?.toFixed(2)}
+                    {typeof item.variant?.price === "number"
+                      ? `₹${item.variant.price.toFixed(2)}`
+                      : "-"}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {typeof item.variant?.price === "number" && typeof item.quantity === "number"
+                      ? `₹${(item.variant.price * item.quantity).toFixed(2)}`
+                      : "-"}
                   </Typography>
                 </TableCell>
               </TableRow>
-            ))}
+            )) : (
+              <TableRow>
+                <TableCell colSpan={5}><Typography>No products in cart.</Typography></TableCell>
+              </TableRow>
+            )}
             <TableRow>
               <TableCell colSpan={4} align="right">
                 <Typography variant="subtitle1" fontWeight="bold">
@@ -247,20 +193,13 @@ const UserMemo = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
-      {/* Place Order Button */}
       <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button
-          variant="contained"
-          size="large"
-          onClick={handlePlaceOrder}
-          disabled={!formData.name || products.every((p) => !p.name)}
-        >
+        <Button variant="contained" size="large" onClick={handlePlaceOrder} disabled={!formData.name || cart.length === 0}>
           Place the order
         </Button>
       </Box>
-      <Dialog fullWidth={true} maxWidth="xl" open={openDialog} onClose={() => setOpenDialog(false)}>
-        <ProductPage />
+      <Dialog fullWidth maxWidth="md" open={openDialog} onClose={() => setOpenDialog(false)}>
+        <ProductPage isAuthenticated={true} />
       </Dialog>
     </Box>
   );

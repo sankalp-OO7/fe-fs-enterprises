@@ -279,7 +279,7 @@ const handleConfirm = () => {
             },
           }}
         >
-          Add to Cart ({selectedVariants.size} variants)
+          Add to Memo ({selectedVariants.size} variants)
         </Button>
       </DialogActions>
     </Dialog>

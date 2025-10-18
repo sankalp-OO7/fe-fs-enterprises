@@ -34,9 +34,7 @@ const DesktopNav = ({
   handleLogoutClick,
   profileMenuAnchor,
   setProfileMenuAnchor,
-  cartProps,
 }) => {
-  console.log(cartProps, "cartProps in DesktopNav");
   
   return (
     <Box
@@ -79,7 +77,6 @@ const DesktopNav = ({
             <Button
               component={RouterLink}
               to="/UserMemo"
-              state={{ cart: cartProps.cart }}
               startIcon={<ListAlt />}
               sx={{
                 ...navButtonStyle,
@@ -87,7 +84,7 @@ const DesktopNav = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: 1,
+                gap: 0.5,
               }}
               aria-label={`Memo (${getTotalCartItems()} items)`}
             >

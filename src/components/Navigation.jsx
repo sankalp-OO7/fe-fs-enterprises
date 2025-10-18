@@ -74,7 +74,6 @@ const Navigation = () => {
             handleLogoutClick={handleLogoutClick}
             profileMenuAnchor={profileMenuAnchor}
             setProfileMenuAnchor={setProfileMenuAnchor}
-            cartProps={cartProps}
           />
 
           <MobileNav

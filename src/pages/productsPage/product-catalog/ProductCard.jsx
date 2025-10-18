@@ -229,7 +229,7 @@ const ProductCard = ({
               ? "Out of Stock"
               : hasMultipleVariants
               ? "Select Variants"
-              : "Add to Cart"}
+              : "Add to Memo"}
           </Button>
         )}
 
