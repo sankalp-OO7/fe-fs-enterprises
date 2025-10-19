@@ -21,6 +21,10 @@ import {
 } from "@mui/icons-material";
 import useAuth from "../context/useAuth";
 
+// 🚨 IMPORT YOUR AXIOS CLIENT 🚨
+import axiosClient from "../api/axiosClient";
+// Adjust the path (e.g., '../../api/axiosClient' if necessary)
+
 const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
@@ -53,24 +57,23 @@ const Login = () => {
     });
   };
 
+  // 🚨 UPDATED: Using axiosClient 🚨
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      // 1. Use axiosClient.post()
+      //    - The base URL is automatically prepended (e.g., /api or AWS URL).
+      //    - The Content-Type header is automatically set to application/json.
+      //    - Axios automatically sends the formData object as JSON.
+      const response = await axiosClient.post("/auth/login", formData);
 
-      const data = await response.json();
+      // 2. Axios places the response body into the 'data' property
+      const data = response.data;
 
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed");
-      }
+      // Axios automatically throws an error for 4xx or 5xx status codes,
+      // so the old 'if (!response.ok)' check is no longer needed here.
 
       // Save credentials if remember me is checked
       if (rememberMe) {
@@ -84,9 +87,15 @@ const Login = () => {
       login(data.user, data.token);
       navigate("/products");
     } catch (err) {
-      setError(err.message);
+      // 3. Handle Axios errors
+      //    - Check for err.response to get the server's error details.
+      const errorMessage =
+        err.response?.data?.message ||
+        "Login failed due to a network or server error.";
+      setError(errorMessage);
     }
   };
+  // 🚨 END OF AXIOS UPDATE 🚨
 
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);

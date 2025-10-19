@@ -2,19 +2,26 @@
 
 import axios from "axios";
 
-const axiosClient = axios.create();
+// 1. DYNAMICALLY SET BASE URL USING VITE ENVIRONMENT VARIABLES
+//    - Reads VITE_API_BASE_URL (e.g., 'http://localhost:5000/api' in dev,
+//      or 'https://sfr1ge43pl.execute-api.us-east-1.amazonaws.com/dev' in prod)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// Set the base URL, which relies on your proxy configuration (e.g., in vite.config.js)
-// If you don't use a proxy, change this to 'http://localhost:5000/api'
-axiosClient.defaults.baseURL = "/api";
-axiosClient.defaults.headers.post["Content-Type"] = "application/json";
+const axiosClient = axios.create({
+  // Set the base URL dynamically based on the environment
+  baseURL: API_BASE_URL,
+  // Add common headers for all requests
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true, // IMPORTANT: If your backend uses cookies/sessions
+});
 
-// Request Interceptor to attach the token
+// 2. Request Interceptor: Attach Token
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      // The backend auth middleware expects the token in the 'Authorization' header
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -24,15 +31,23 @@ axiosClient.interceptors.request.use(
   }
 );
 
-// Response Interceptor to handle token expiry (e.g., 401 Unauthorized)
+// 3. Response Interceptor: Handle Global Errors (like 401 Unauthorized)
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // This handles token expiry or invalid token automatically
+    // Check for 401 Unauthorized status (token expired/invalid)
+    if (error.response?.status === 401) {
+      console.error(
+        "401 Unauthorized: Token expired. Clearing token and forcing redirect."
+      );
+
+      // Clear token and user data
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      // Force a page refresh or redirect to login (handled better in components)
+
+      // Force a redirect to the login page to fully reset app state
+      // Assuming your login route is '/login'
+      window.location.replace("/login");
     }
     return Promise.reject(error);
   }
