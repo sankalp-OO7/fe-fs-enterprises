@@ -35,7 +35,6 @@ const DesktopNav = ({
   profileMenuAnchor,
   setProfileMenuAnchor,
 }) => {
-  
   return (
     <Box
       sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}
@@ -124,6 +123,14 @@ const DesktopNav = ({
         </>
       ) : (
         <>
+          <Button
+            component={RouterLink}
+            to="/products"
+            startIcon={<Login />}
+            sx={navButtonStyle}
+          >
+            Products
+          </Button>
           <Button
             component={RouterLink}
             to="/login"

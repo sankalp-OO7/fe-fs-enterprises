@@ -195,7 +195,10 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
                 <ViewModuleIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: 20 }} />
                 <Box
                   component="span"
-                  sx={{ display: { xs: "none", sm: "inline" }, fontSize: "0.875rem" }}
+                  sx={{
+                    display: { xs: "none", sm: "inline" },
+                    fontSize: "0.875rem",
+                  }}
                 >
                   Grid
                 </Box>
@@ -204,7 +207,10 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
                 <ViewListIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: 20 }} />
                 <Box
                   component="span"
-                  sx={{ display: { xs: "none", sm: "inline" }, fontSize: "0.875rem" }}
+                  sx={{
+                    display: { xs: "none", sm: "inline" },
+                    fontSize: "0.875rem",
+                  }}
                 >
                   List
                 </Box>

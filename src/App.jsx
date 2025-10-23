@@ -13,11 +13,14 @@ import "./App.css";
 import ProductsPage from "./pages/productsPage/ProductsPage";
 import AdminMemoOrdersPage from "./pages/memo/AdminMemoOrderPage";
 import UserMemo from "./pages/memo/UserMemo";
+import HeroSection from "./ViewComponents/HeroSection";
+import ContactUs from "./ViewComponents/ContactUs";
+import AboutUs from "./ViewComponents/AboutUs";
 
 // Protected Route Component (Keep this)
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading, isAdmin } = useAuth();
-  
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -36,7 +39,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 function App() {
   const { isAdmin, isAuthenticated } = useAuth();
   console.log(isAdmin());
-  
+
   return (
     <div>
       {" "}
@@ -49,7 +52,10 @@ function App() {
           path="/products"
           element={
             <ProtectedRoute>
-              <ProductsPage adminOnlyy={isAdmin()} isAuthenticated={isAuthenticated}/>
+              <ProductsPage
+                adminOnlyy={isAdmin()}
+                isAuthenticated={isAuthenticated}
+              />
             </ProtectedRoute>
           }
         />
@@ -69,8 +75,18 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/" element={<Navigate to="/products" />} />
-       {isAuthenticated && <Route path="/userMemo" element={<UserMemo />} />}
+        <Route
+          path="/"
+          element={
+            <>
+              {" "}
+              <HeroSection />
+              <AboutUs />
+              <ContactUs />
+            </>
+          }
+        />
+        {isAuthenticated && <Route path="/userMemo" element={<UserMemo />} />}
       </Routes>
     </div>
   );
