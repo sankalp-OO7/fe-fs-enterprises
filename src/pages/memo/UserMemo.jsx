@@ -6,9 +6,9 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
-import { useCart } from "../context/CartContext";
-import ProductPage from "../pages/productsPage/ProductsPage";
-import axiosClient from "../api/axiosClient";
+import { useCart } from "../../context/CartContext";
+import ProductPage from "../productsPage/ProductsPage";
+import axiosClient from "../../api/axiosClient";
 
 const UserMemo = () => {
   const [openDialog, setOpenDialog] = useState(false);

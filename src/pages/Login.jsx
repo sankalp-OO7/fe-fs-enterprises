@@ -104,7 +104,7 @@ const Login = () => {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        minHeight: "92.5vh",
         display: "flex",
         position: "relative",
         overflow: "hidden",

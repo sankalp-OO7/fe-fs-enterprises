@@ -9,18 +9,21 @@ import {
   Alert,
   Snackbar,
   Pagination,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import HeroSection from "./product-catalog/HeroSection";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import ViewListIcon from "@mui/icons-material/ViewList";
 import FilterSidebar from "./product-catalog/FilterSidebar";
 import ProductGrid from "./product-catalog/ProductGrid";
 import LoadingSkeleton from "./product-catalog/LoadingSkeleton";
 
 const API_PRODUCT_BASE = "/products";
 const API_CATEGORY_BASE = "/categories";
-const ITEMS_PER_PAGE = 12; // 3 rows × 4 cards
+const ITEMS_PER_PAGE = 20; // Increased from 12
 
-const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
+const ProductView = ({ isAdmin, isAuthenticated }) => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,11 @@ const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [addToCartDialogOpen, setAddToCartDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [viewMode, setViewMode] = useState("grid");
+
+  const handleViewModeChange = (event, newMode) => {
+    if (newMode !== null) setViewMode(newMode);
+  };
 
   const {
     snackbarOpen,
@@ -39,7 +47,6 @@ const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
     closeSnackbar,
   } = useCart();
 
-  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -61,7 +68,6 @@ const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
     fetchData();
   }, []);
 
-  // Filtering logic
   const filteredProducts = useMemo(() => {
     let filtered = products;
 
@@ -84,14 +90,12 @@ const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
     return filtered;
   }, [products, searchTerm, selectedCategory]);
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredProducts, currentPage]);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory]);
@@ -123,45 +127,92 @@ const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
 
   if (error) {
     return (
-      <Container maxWidth="xl" sx={{ mt: 5 }}>
+      <Box sx={{ mt: 5, px: 3 }}>
         <Alert severity="error" sx={{ borderRadius: 3, fontSize: "1.1rem" }}>
           {error}
         </Alert>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 0, mb: 8, px: { xs: 2, sm: 3 } }}>
-      {/* <HeroSection /> */}
-
-      <Grid
-        container
-        spacing={{ xs: 2 }}
-        sx={{
-          mt: 0,
-          display: "flex",
-          alignContent: "center",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+    <Box sx={{ width: "100%", py: 2 }}>
+      <Grid container spacing={2} sx={{ width: "100%", m: 0 }}>
         {/* Filter Sidebar */}
-        <Grid item xs={12} lg={3}>
-          <FilterSidebar
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            categories={categories}
-            filteredCount={filteredProducts.length}
-            onClearFilters={handleClearFilters}
-            // Remove default margin top
-          />
+        <Grid item xs={12} md={3} lg={2.5} sx={{ pl: 2 }}>
+          <Box sx={{ position: { md: "sticky" }, top: { md: 20 } }}>
+            <FilterSidebar
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              categories={categories}
+              filteredCount={filteredProducts.length}
+              onClearFilters={handleClearFilters}
+            />
+          </Box>
         </Grid>
 
-        {/* Product Grid */}
-        <Grid item xs={12} lg={9}>
+        {/* Product Display Area */}
+        <Grid item xs={12} md={9} lg={9.5} sx={{ pr: 2 }}>
+          {/* View Toggle */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              aria-label="view mode"
+              size="small"
+              sx={{
+                backgroundColor: "background.paper",
+                borderRadius: 2,
+                boxShadow: 1,
+                "& .MuiToggleButton-root": {
+                  textTransform: "none",
+                  fontWeight: 600,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  px: 2,
+                  py: 0.75,
+                },
+                "& .Mui-selected": {
+                  backgroundColor: "primary.main",
+                  color: "white !important",
+                  "&:hover": {
+                    backgroundColor: "primary.dark",
+                  },
+                },
+              }}
+            >
+              <ToggleButton value="grid" aria-label="grid view">
+                <ViewModuleIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: 20 }} />
+                <Box
+                  component="span"
+                  sx={{ display: { xs: "none", sm: "inline" }, fontSize: "0.875rem" }}
+                >
+                  Grid
+                </Box>
+              </ToggleButton>
+              <ToggleButton value="list" aria-label="list view">
+                <ViewListIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: 20 }} />
+                <Box
+                  component="span"
+                  sx={{ display: { xs: "none", sm: "inline" }, fontSize: "0.875rem" }}
+                >
+                  List
+                </Box>
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {/* Products Display */}
           <ProductGrid
             products={paginatedProducts}
             categories={categories}
@@ -171,22 +222,23 @@ const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
             isAdmin={isAdmin}
             isAuthenticated={isAuthenticated}
             onAddToCart={handleAddToCart}
+            viewMode={viewMode}
           />
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <Pagination
                 count={totalPages}
                 page={currentPage}
                 onChange={handlePageChange}
                 color="primary"
-                size="large"
+                size="medium"
                 showFirstButton
                 showLastButton
                 sx={{
                   "& .MuiPaginationItem-root": {
-                    fontSize: "1rem",
+                    fontSize: "0.875rem",
                     fontWeight: 600,
                     borderRadius: 2,
                   },
@@ -203,7 +255,6 @@ const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
         </Grid>
       </Grid>
 
-      {/* Add to Cart Dialog */}
       <AddToCartDialog
         open={addToCartDialogOpen}
         onClose={() => setAddToCartDialogOpen(false)}
@@ -211,7 +262,6 @@ const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
         onAddToCart={handleMultipleVariantsAdd}
       />
 
-      {/* Success Snackbar */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
@@ -227,8 +277,8 @@ const ProductDisplayAndSearch = ({ isAdmin, isAuthenticated }) => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
-    </Container>
+    </Box>
   );
 };
 
-export default ProductDisplayAndSearch;
+export default ProductView;
