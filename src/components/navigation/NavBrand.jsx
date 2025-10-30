@@ -7,7 +7,7 @@ const NavBrand = () => {
   return (
     <Box
       component={RouterLink}
-      to="/products"
+      to="/"
       sx={{
         display: "flex",
         alignItems: "center",

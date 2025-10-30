@@ -126,7 +126,7 @@ const DesktopNav = ({
           <Button
             component={RouterLink}
             to="/products"
-            startIcon={<Login />}
+            startIcon={<Inventory />}
             sx={navButtonStyle}
           >
             Products
