@@ -21,11 +21,15 @@ const ProductGrid = ({
   isAuthenticated,
   onAddToCart,
   viewMode,
+  onAddSingleVariant,
 }) => {
+    const [openForVariants, setOpenForVariants] = React.useState(false);
+    const handleOpenForVariants = () => setOpenForVariants(true);
+    const handleCloseForVariants = () => setOpenForVariants(false);
   return (
     <Box sx={{ width: "100%" }}>
       {products.length > 0 ? (
-        viewMode === "list" ? (
+        viewMode === "list" && !openForVariants ? (
           <Stack spacing={1} sx={{ width: "100%" }}>
             {products.map((product) => (
               <Paper
@@ -112,7 +116,7 @@ const ProductGrid = ({
                   <Button
                     variant="contained"
                     size="small"
-                    onClick={() => onAddToCart(product)}
+                    onClick={handleOpenForVariants}
                     sx={{
                       borderRadius: 2,
                       px: 2,
@@ -123,7 +127,7 @@ const ProductGrid = ({
                       fontSize: "0.875rem",
                     }}
                   >
-                    Add
+                    Show All Products
                   </Button>
                 </Box>
               </Paper>
@@ -140,6 +144,10 @@ const ProductGrid = ({
                   isAdmin={isAdmin}
                   isAuthenticated={isAuthenticated}
                   onAddToCart={onAddToCart}
+                  onAddSingleVariant={onAddSingleVariant}
+                  openForVariants={openForVariants}
+                  handleOpenForVariants={handleOpenForVariants}
+                  handleCloseForVariants={handleCloseForVariants}
                 />
               </Grid>
             ))}

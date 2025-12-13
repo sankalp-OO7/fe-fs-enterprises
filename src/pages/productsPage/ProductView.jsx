@@ -118,7 +118,9 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
       setAddToCartDialogOpen(true);
     }
   };
-
+  const handleSingleVariantAdd = (product, variant, qty) => {
+  addItemToCart(product, variant, qty);
+};
   const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
     addMultipleVariantsToCart(product, selectedVariants, quantities);
   };
@@ -229,6 +231,7 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
             isAuthenticated={isAuthenticated}
             onAddToCart={handleAddToCart}
             viewMode={viewMode}
+             onAddSingleVariant={handleSingleVariantAdd}
           />
 
           {/* Pagination */}

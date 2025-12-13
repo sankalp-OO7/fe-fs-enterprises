@@ -23,8 +23,8 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import CloseIcon from "@mui/icons-material/Close";
 import { styled, alpha } from "@mui/material/styles";
-import VariantCard from "./VariantCard";
-
+import SingleVariantDialog from "../../../components/product/SingleVariantDialog";
+import ProductCardDetails from "../../../components/product/ProductCardDetails";
 const StyledCard = styled(Card)(({ theme }) => ({
   width: "320px",
   minHeight: "650px",
@@ -99,14 +99,22 @@ const ProductCard = ({
   isAdmin,
   isAuthenticated,
   onAddToCart,
+  onAddSingleVariant,
+  openForVariants,
+  handleOpenForVariants,
+  handleCloseForVariants
 }) => {
-  const [open, setOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
 
+  const [openVariantDialog, setOpenVariantDialog] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+
+  const handleOpenVariant = (variant) => {
+    setSelectedVariant(variant);
+    setOpenVariantDialog(true);
+  };
   const categoryName =
     product.categoryId?.name ||
     categories.find((c) => c._id === product.categoryId)?.name ||
@@ -127,7 +135,7 @@ const ProductCard = ({
 
   return (
     <>
-      <StyledCard onClick={handleOpen}>
+      <StyledCard onClick={handleOpenForVariants}>
         <Box sx={{ position: "relative" }}>
           <StyledCardMedia
             component="img"
@@ -153,178 +161,21 @@ const ProductCard = ({
               }}
             />
           </Box>
-
-          {hasMultipleVariants && (
-            <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
-              <Chip
-                icon={<InventoryIcon sx={{ fontSize: 16 }} />}
-                label={`${product.variants.length} Options`}
-                size="small"
-                sx={{
-                  background: "rgba(33, 150, 243, 0.95)",
-                  color: "white",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                }}
-              />
-            </Box>
-          )}
-
-          {isOutOfStock && (
-            <Box
-              sx={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                background: "rgba(244, 67, 54, 0.95)",
-                color: "white",
-                py: 1,
-                textAlign: "center",
-                fontWeight: 700,
-                fontSize: "0.875rem",
-              }}
-            >
-              OUT OF STOCK
-            </Box>
-          )}
         </Box>
-
-        <CardContent
-          sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}
-        >
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              fontWeight: 800,
-              mb: 1.5,
-              fontSize: "1.1rem",
-              lineHeight: 1.3,
-              color: "primary.main",
-              minHeight: 50,
-              maxHeight: 50,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
-            {product.name}
-          </Typography>
-
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              mb: 2,
-              lineHeight: 1.6,
-              minHeight: 44,
-              maxHeight: 44,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
-            {product.description}
-          </Typography>
-
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mb: 2 }}
-          >
-            {!isAdmin && isAuthenticated && (
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 900,
-                  color: "success.main",
-                  fontSize: "1.1rem",
-                }}
-              >
-                {priceDisplay}
-              </Typography>
-            )}
-            <Chip
-              icon={<TrendingUpIcon />}
-              label={`${totalStock} in stock`}
-              size="small"
-              color={
-                totalStock > 10
-                  ? "success"
-                  : totalStock > 0
-                  ? "warning"
-                  : "error"
-              }
-            />
-          </Stack>
-
-          {!isAdmin && isAuthenticated && (
-            <Button
-              fullWidth
-              variant="contained"
-              size="medium"
-              startIcon={<ShoppingCartIcon />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToCart(product);
-              }}
-              disabled={isOutOfStock}
-              sx={{
-                mb: 2,
-                borderRadius: "12px",
-                py: 1.2,
-                fontWeight: 600,
-                fontSize: "0.9rem",
-                textTransform: "none",
-              }}
-            >
-              {isOutOfStock
-                ? "Out of Stock"
-                : hasMultipleVariants
-                ? "Select Variants"
-                : "Add to Memo"}
-            </Button>
-          )}
-
-          <Box sx={{ mt: "auto" }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                mb: 1.5,
-                fontWeight: 800,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              <InventoryIcon fontSize="small" color="primary" />
-              Variants ({product.variants.length})
-            </Typography>
-
-            <Grid container spacing={1}>
-              {product.variants.map((variant) => (
-                <Grid item xs={12} key={variant._id}>
-                  <VariantCard variant={variant} />
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        </CardContent>
+        <ProductCardDetails
+          product={product}
+          isAdmin={isAdmin}
+          isAuthenticated={isAuthenticated}
+          priceDisplay={priceDisplay}
+          onAddToCart={onAddToCart}
+        />
       </StyledCard>
 
-      {/* Full Screen Dialog */}
+      {/* Full Screen Dialog for the variant */}
       <Dialog
         fullScreen
-        open={open}
-        onClose={handleClose}
+        open={openForVariants}
+        onClose={handleCloseForVariants}
         sx={{
           "& .MuiDialog-paper": {
             background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -356,7 +207,7 @@ const ProductCard = ({
             <IconButton
               edge="end"
               color="inherit"
-              onClick={handleClose}
+              onClick={handleCloseForVariants}
               aria-label="close"
               sx={{
                 backgroundColor: alpha(theme.palette.primary.main, 0.1),
@@ -379,116 +230,6 @@ const ProductCard = ({
           }}
         >
           <Grid container spacing={4}>
-            {/* Product Details Section - Top */}
-            <Grid item xs={12} lg={5}>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  height: "100%",
-                  gap: 3,
-                }}
-              >
-                <FullScreenImage
-                  component="img"
-                  image={
-                    mainVariant?.imageUrl ||
-                    "https://via.placeholder.com/600x400?text=No+Image"
-                  }
-                  alt={product.name}
-                  sx={{
-                    borderRadius: 4,
-                    boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-                  }}
-                />
-
-                <Box
-                  sx={{
-                    p: 4,
-                    borderRadius: 4,
-                    backgroundColor: "rgba(255, 255, 255, 0.95)",
-                    backdropFilter: "blur(20px)",
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-                    <Chip
-                      icon={<LocalOfferIcon />}
-                      label={categoryName}
-                      color="primary"
-                      variant="outlined"
-                      sx={{ fontSize: "0.9rem", py: 1 }}
-                    />
-                    <Chip
-                      icon={<TrendingUpIcon />}
-                      label={`${totalStock} in stock`}
-                      color={
-                        totalStock > 10
-                          ? "success"
-                          : totalStock > 0
-                          ? "warning"
-                          : "error"
-                      }
-                      sx={{ fontSize: "0.9rem", py: 1 }}
-                    />
-                  </Stack>
-
-                  <Typography
-                    variant="h3"
-                    sx={{
-                      fontWeight: 900,
-                      mb: 3,
-                      color: "primary.main",
-                      fontSize: { xs: "2rem", md: "2.5rem" },
-                    }}
-                  >
-                    {priceDisplay}
-                  </Typography>
-
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      lineHeight: 1.8,
-                      color: "text.primary",
-                      fontSize: "1.1rem",
-                      mb: 3,
-                    }}
-                  >
-                    {product.description}
-                  </Typography>
-
-                  {!isAdmin && isAuthenticated && (
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      size="large"
-                      startIcon={<ShoppingCartIcon />}
-                      onClick={() => {
-                        onAddToCart(product);
-                        handleClose();
-                      }}
-                      disabled={isOutOfStock}
-                      sx={{
-                        mt: 2,
-                        borderRadius: "16px",
-                        py: 2.5,
-                        fontWeight: 700,
-                        fontSize: "1.2rem",
-                        textTransform: "none",
-                        boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
-                      }}
-                    >
-                      {isOutOfStock
-                        ? "Out of Stock"
-                        : hasMultipleVariants
-                        ? "Select Variants"
-                        : "Add to Memo"}
-                    </Button>
-                  )}
-                </Box>
-              </Box>
-            </Grid>
-
             {/* Variants Section - Bottom */}
             <Grid item xs={12} lg={7}>
               <Box
@@ -503,27 +244,12 @@ const ProductCard = ({
                   overflow: "auto",
                 }}
               >
-                <Typography
-                  variant="h4"
-                  sx={{
-                    mb: 4,
-                    fontWeight: 800,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                    color: "primary.main",
-                    fontSize: { xs: "1.5rem", md: "2rem" },
-                  }}
-                >
-                  <InventoryIcon fontSize="large" />
-                  Available Variants ({product.variants.length})
-                </Typography>
-
                 <Grid container spacing={3}>
                   {product.variants.map((variant) => (
                     <Grid item xs={12} key={variant._id}>
                       <EnhancedVariantCard>
                         {/* Variant Image */}
+
                         <VariantImage
                           component="img"
                           image={
@@ -575,20 +301,13 @@ const ProductCard = ({
                             >
                               ₹{variant.price?.toFixed(2) || "N/A"}
                             </Typography>
-
-                            <Chip
-                              icon={<InventoryIcon />}
-                              label={`${variant.stockQty} in stock`}
-                              size="medium"
-                              color={
-                                variant.stockQty > 10
-                                  ? "success"
-                                  : variant.stockQty > 0
-                                  ? "warning"
-                                  : "error"
-                              }
-                              sx={{ fontWeight: 600 }}
-                            />
+                            <Button
+                              variant="contained"
+                              onClick={() => handleOpenVariant(variant)}
+                              sx={{ mt: 2 }}
+                            >
+                              Add
+                            </Button>
                           </Stack>
                         </Box>
                       </EnhancedVariantCard>
@@ -600,6 +319,14 @@ const ProductCard = ({
           </Grid>
         </Container>
       </Dialog>
+      <SingleVariantDialog
+        open={openVariantDialog}
+        onClose={() => setOpenVariantDialog(false)}
+        variant={selectedVariant}
+        onAddToCart={(variant, qty) => {
+          onAddSingleVariant(product, variant, qty);
+        }}
+      />
     </>
   );
 };

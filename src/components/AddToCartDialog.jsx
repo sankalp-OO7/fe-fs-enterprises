@@ -148,7 +148,7 @@ const handleConfirm = () => {
                     }
                     label={
                       <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {/* <Typography variant="body1" sx={{ fontWeight: 600 }}>
                           {variant.name}
                           {isOutOfStock && (
                             <Chip
@@ -159,7 +159,7 @@ const handleConfirm = () => {
                               sx={{ ml: 1, fontSize: "0.7rem" }}
                             />
                           )}
-                        </Typography>
+                        </Typography> */}
                         <Typography variant="caption" color="text.secondary">
                           Stock: {variant.stockQty} units
                         </Typography>
@@ -279,7 +279,7 @@ const handleConfirm = () => {
             },
           }}
         >
-          Add to Memo ({selectedVariants.size} variants)
+          Add to Memo ({selectedVariants.size} )
         </Button>
       </DialogActions>
     </Dialog>
