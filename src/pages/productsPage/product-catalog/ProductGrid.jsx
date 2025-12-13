@@ -23,13 +23,10 @@ const ProductGrid = ({
   viewMode,
   onAddSingleVariant,
 }) => {
-    const [openForVariants, setOpenForVariants] = React.useState(false);
-    const handleOpenForVariants = () => setOpenForVariants(true);
-    const handleCloseForVariants = () => setOpenForVariants(false);
   return (
     <Box sx={{ width: "100%" }}>
       {products.length > 0 ? (
-        viewMode === "list" && !openForVariants ? (
+        viewMode === "list" ? (
           <Stack spacing={1} sx={{ width: "100%" }}>
             {products.map((product) => (
               <Paper
@@ -116,7 +113,13 @@ const ProductGrid = ({
                   <Button
                     variant="contained"
                     size="small"
-                    onClick={handleOpenForVariants}
+                    onClick={() => {
+                      // Show variants dialog - this will be handled by ProductCard internally
+                      const event = new CustomEvent('openProductVariants', { 
+                        detail: { productId: product._id } 
+                      });
+                      window.dispatchEvent(event);
+                    }}
                     sx={{
                       borderRadius: 2,
                       px: 2,
@@ -145,9 +148,6 @@ const ProductGrid = ({
                   isAuthenticated={isAuthenticated}
                   onAddToCart={onAddToCart}
                   onAddSingleVariant={onAddSingleVariant}
-                  openForVariants={openForVariants}
-                  handleOpenForVariants={handleOpenForVariants}
-                  handleCloseForVariants={handleCloseForVariants}
                 />
               </Grid>
             ))}

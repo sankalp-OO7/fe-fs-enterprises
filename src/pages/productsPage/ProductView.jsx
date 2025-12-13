@@ -21,9 +21,10 @@ import LoadingSkeleton from "./product-catalog/LoadingSkeleton";
 
 const API_PRODUCT_BASE = "/products";
 const API_CATEGORY_BASE = "/categories";
-const ITEMS_PER_PAGE = 20; // Increased from 12
+const ITEMS_PER_PAGE = 20;
 
 const ProductView = ({ isAdmin, isAuthenticated }) => {
+  const [variantProduct, setVariantProduct] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,9 +119,11 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
       setAddToCartDialogOpen(true);
     }
   };
+
   const handleSingleVariantAdd = (product, variant, qty) => {
-  addItemToCart(product, variant, qty);
-};
+    addItemToCart(product, variant, qty);
+  };
+
   const handleMultipleVariantsAdd = (product, selectedVariants, quantities) => {
     addMultipleVariantsToCart(product, selectedVariants, quantities);
   };
@@ -231,7 +234,7 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
             isAuthenticated={isAuthenticated}
             onAddToCart={handleAddToCart}
             viewMode={viewMode}
-             onAddSingleVariant={handleSingleVariantAdd}
+            onAddSingleVariant={handleSingleVariantAdd}
           />
 
           {/* Pagination */}
