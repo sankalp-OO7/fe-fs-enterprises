@@ -25,12 +25,13 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     return <div>Loading...</div>;
   }
 
-  // if (!user) {
-  //   return <Navigate to="/login" />;
-  // }
+  // FIXED: Add replace
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (adminOnly && !isAdmin()) {
-    return <Navigate to="/products" />;
+    return <Navigate to="/products" replace />;
   }
 
   return children;

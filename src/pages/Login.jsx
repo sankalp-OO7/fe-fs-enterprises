@@ -85,7 +85,7 @@ const Login = () => {
       }
 
       login(data.user, data.token);
-      navigate("/products");
+      navigate("/");
     } catch (err) {
       // 3. Handle Axios errors
       //    - Check for err.response to get the server's error details.
