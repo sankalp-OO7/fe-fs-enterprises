@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -23,6 +24,7 @@ const ProductGrid = ({
   viewMode,
   onAddSingleVariant,
 }) => {
+  const navigate = useNavigate();
   return (
     <Box sx={{ width: "100%" }}>
       {products.length > 0 ? (
@@ -114,11 +116,7 @@ const ProductGrid = ({
                     variant="contained"
                     size="small"
                     onClick={() => {
-                      // Show variants dialog - this will be handled by ProductCard internally
-                      const event = new CustomEvent('openProductVariants', { 
-                        detail: { productId: product._id } 
-                      });
-                      window.dispatchEvent(event);
+                      navigate(`/products/${product._id}`);
                     }}
                     sx={{
                       borderRadius: 2,

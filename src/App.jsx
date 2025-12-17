@@ -11,6 +11,7 @@ import User from "./pages/userCrud/User";
 
 import "./App.css";
 import ProductsPage from "./pages/productsPage/ProductsPage";
+import ProductDetailsPage from "./pages/productsPage/ProductDetailsPage";
 import AdminMemoOrdersPage from "./pages/memo/AdminMemoOrderPage";
 import UserMemo from "./pages/memo/UserMemo";
 import HeroSection from "./ViewComponents/HeroSection";
@@ -55,6 +56,17 @@ function App() {
             <ProtectedRoute>
               <ProductsPage
                 adminOnlyy={isAdmin()}
+                isAuthenticated={isAuthenticated}
+              />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/products/:productId"
+          element={
+            <ProtectedRoute>
+              <ProductDetailsPage
+                isAdmin={isAdmin()}
                 isAuthenticated={isAuthenticated}
               />
             </ProtectedRoute>
