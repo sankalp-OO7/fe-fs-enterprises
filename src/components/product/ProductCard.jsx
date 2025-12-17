@@ -31,13 +31,10 @@ const ProductCard = ({ product, categoryName, onSelect }) => {
   const maxPrice = Math.max(...prices);
 
   const priceDisplay =
-    minPrice !== maxPrice
-      ? `₹${minPrice} - ₹${maxPrice}`
-      : `₹${minPrice}`;
+    minPrice !== maxPrice ? `₹${minPrice} - ₹${maxPrice}` : `₹${minPrice}`;
 
   return (
     <StyledCard onClick={() => onSelect(product)}>
-
       {/* Image */}
       <CardMedia
         component="img"
@@ -54,7 +51,6 @@ const ProductCard = ({ product, categoryName, onSelect }) => {
       />
 
       <CardContent>
-
         {/* Category */}
         <Chip
           icon={<LocalOfferIcon />}
@@ -91,7 +87,6 @@ const ProductCard = ({ product, categoryName, onSelect }) => {
         >
           {priceDisplay}
         </Typography>
-
       </CardContent>
     </StyledCard>
   );

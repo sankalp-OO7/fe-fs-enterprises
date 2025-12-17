@@ -33,7 +33,7 @@ import ProductCardDetails from "../../../components/product/ProductCardDetails";
 
 const StyledCard = styled(Card)(({ theme }) => ({
   width: "320px",
-  minHeight: "650px",
+  minHeight: "150px",
   display: "flex",
   flexDirection: "column",
   borderRadius: "20px",
@@ -65,7 +65,7 @@ const StyledCardMedia = styled(CardMedia)({
 
 const VariantCard = styled(Card)(({ theme }) => ({
   width: "100%",
-  minHeight: "650px",
+  minHeight: "150px",
   display: "flex",
   flexDirection: "column",
   borderRadius: "20px",
@@ -111,9 +111,9 @@ const ProductCard = ({
       }
     };
 
-    window.addEventListener('openProductVariants', handleOpenVariants);
+    window.addEventListener("openProductVariants", handleOpenVariants);
     return () => {
-      window.removeEventListener('openProductVariants', handleOpenVariants);
+      window.removeEventListener("openProductVariants", handleOpenVariants);
     };
   }, [product._id]);
 
@@ -138,12 +138,14 @@ const ProductCard = ({
   // Filter variants based on search term
   const filteredVariants = useMemo(() => {
     if (!variantSearchTerm.trim()) return product.variants;
-    
+
     const searchTermLower = variantSearchTerm.toLowerCase();
-    return product.variants.filter(variant => {
+    return product.variants.filter((variant) => {
       return (
-        (variant.name && variant.name.toLowerCase().includes(searchTermLower)) ||
-        (variant.description && variant.description.toLowerCase().includes(searchTermLower)) ||
+        (variant.name &&
+          variant.name.toLowerCase().includes(searchTermLower)) ||
+        (variant.description &&
+          variant.description.toLowerCase().includes(searchTermLower)) ||
         (variant.sku && variant.sku.toLowerCase().includes(searchTermLower))
       );
     });
@@ -167,37 +169,35 @@ const ProductCard = ({
       ? `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
       : `₹${mainVariant ? mainVariant.price.toFixed(2) : "N/A"}`;
 
-const defaultImages =[
-  "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660477/fs/Fs3_iros0a.jpg",
-  "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660467/fs/Fs2_n5g4lm.webp",
-  "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660468/fs/Fs4_wnnaxc.jpg",
-  "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660467/fs/Fs1_atrhyk.webp"
-]
-const getDefaultImageForProduct = (productId) => {
-  if (!productId) return defaultImages[0];
-  
-  // Create a simple hash from product ID to pick consistent image
-  const hash = Array.from(productId).reduce((hash, char) => {
-    return char.charCodeAt(0) + ((hash << 5) - hash);
-  }, 0);
-  
-  const index = Math.abs(hash) % defaultImages.length;
-  return defaultImages[index];
-};
-const getRandomDefaultImage = () => {
-  const randomIndex = Math.floor(Math.random() * defaultImages.length);
-  return defaultImages[randomIndex];
-};
-const pickedImage = getDefaultImageForProduct(product._id);
+  const defaultImages = [
+    "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660477/fs/Fs3_iros0a.jpg",
+    "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660467/fs/Fs2_n5g4lm.webp",
+    "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660468/fs/Fs4_wnnaxc.jpg",
+    "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660467/fs/Fs1_atrhyk.webp",
+  ];
+  const getDefaultImageForProduct = (productId) => {
+    if (!productId) return defaultImages[0];
+
+    // Create a simple hash from product ID to pick consistent image
+    const hash = Array.from(productId).reduce((hash, char) => {
+      return char.charCodeAt(0) + ((hash << 5) - hash);
+    }, 0);
+
+    const index = Math.abs(hash) % defaultImages.length;
+    return defaultImages[index];
+  };
+  const getRandomDefaultImage = () => {
+    const randomIndex = Math.floor(Math.random() * defaultImages.length);
+    return defaultImages[randomIndex];
+  };
+  const pickedImage = getDefaultImageForProduct(product._id);
   return (
     <>
       <StyledCard onClick={handleOpenForVariants}>
         <Box sx={{ position: "relative" }}>
           <StyledCardMedia
             component="img"
-            image={
-              mainVariant?.imageUrl || pickedImage
-            }
+            image={mainVariant?.imageUrl || pickedImage}
             alt={product.name}
             className="product-image"
           />
@@ -336,7 +336,13 @@ const pickedImage = getDefaultImageForProduct(product._id);
                 />
               </Grid>
               <Grid item xs={12} md={4} lg={3}>
-                <Box sx={{ display: "flex", gap: 2, justifyContent: { md: "flex-end" } }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 2,
+                    justifyContent: { md: "flex-end" },
+                  }}
+                >
                   <Chip
                     label={`${filteredVariants.length} variants found`}
                     color="primary"
@@ -371,10 +377,18 @@ const pickedImage = getDefaultImageForProduct(product._id);
           >
             {variantSearchTerm ? "Search Results" : "Select a Variant"}
           </Typography>
-          
+
           <Grid container spacing={4} justifyContent="center">
             {filteredVariants.map((variant) => (
-              <Grid item key={variant._id} xs={12} sm={6} md={4} lg={3} xl={2.4}>
+              <Grid
+                item
+                key={variant._id}
+                xs={12}
+                sm={6}
+                md={4}
+                lg={3}
+                xl={2.4}
+              >
                 <VariantCard
                   onClick={() => handleOpenVariant(variant)}
                   sx={{ cursor: "pointer" }}
@@ -382,12 +396,10 @@ const pickedImage = getDefaultImageForProduct(product._id);
                   <Box sx={{ position: "relative" }}>
                     <VariantCardMedia
                       component="img"
-                      image={
-                        variant.imageUrl || pickedImage
-                      }
+                      image={variant.imageUrl || pickedImage}
                       alt={variant.name}
                     />
-                        
+
                     {/* SKU Badge */}
                     {variant.sku && (
                       <Box
@@ -410,7 +422,14 @@ const pickedImage = getDefaultImageForProduct(product._id);
                     )}
                   </Box>
 
-                  <CardContent sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}>
+                  <CardContent
+                    sx={{
+                      p: 3,
+                      flexGrow: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
                     {/* Variant Name */}
                     <Typography
                       variant="h6"
@@ -467,7 +486,7 @@ const pickedImage = getDefaultImageForProduct(product._id);
                         >
                           ₹{variant.price?.toFixed(2) || "N/A"}
                         </Typography>
-                        
+
                         {!isAdmin && isAuthenticated && (
                           <Button
                             variant="contained"
@@ -500,7 +519,7 @@ const pickedImage = getDefaultImageForProduct(product._id);
               </Grid>
             ))}
           </Grid>
-          
+
           {filteredVariants.length === 0 ? (
             <Paper
               sx={{
@@ -517,7 +536,7 @@ const pickedImage = getDefaultImageForProduct(product._id);
                 No Variants Found
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                {variantSearchTerm 
+                {variantSearchTerm
                   ? `No variants match "${variantSearchTerm}"`
                   : "No variants available for this product."}
               </Typography>
@@ -573,4 +592,3 @@ const pickedImage = getDefaultImageForProduct(product._id);
 };
 
 export default ProductCard;
-

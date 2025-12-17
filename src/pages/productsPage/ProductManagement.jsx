@@ -1,5 +1,3 @@
-// src/pages/ProductManagement.jsx - Updated Version
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../context/useAuth";
@@ -35,6 +33,7 @@ import {
   ListItemText,
   Grid,
   Divider,
+  TablePagination,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -63,9 +62,13 @@ const ProductManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
   // State for Update Dialog
   const [openUpdateDialog, setOpenUpdateDialog] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState(null); // Full product object with variants
+  const [currentProduct, setCurrentProduct] = useState(null);
 
   // State for Delete Confirmation
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -76,6 +79,7 @@ const ProductManagement = () => {
   const handleExpandRow = (productId) => {
     setExpandedRow(expandedRow === productId ? null : productId);
   };
+
   // --- 1. Data Fetching (READ) ---
   useEffect(() => {
     if (!isAuthenticated || !isAdmin()) {
@@ -89,19 +93,32 @@ const ProductManagement = () => {
     setLoading(true);
     setError("");
     try {
-      // Fetch Products (assumes backend populates categoryId)
       const productsResponse = await axiosClient.get(API_PRODUCT_BASE);
-      // Fetch Categories (for the Update dropdown)
       const categoriesResponse = await axiosClient.get(API_CATEGORY_BASE);
 
       setProducts(productsResponse.data);
       setCategories(categoriesResponse.data);
+      setPage(0); // Reset to first page
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch data.");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedProducts = products.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   // --- 2. DELETE Product ---
   const handleOpenDelete = (id) => {
@@ -123,7 +140,6 @@ const ProductManagement = () => {
 
   // --- 3. UPDATE Product (including Variants) ---
   const handleOpenUpdate = (product) => {
-    // Ensure price and stockQty are loaded as strings for TextField
     const variantsForForm = product.variants.map((v) => ({
       ...v,
       price: v.price?.toString() || "0",
@@ -135,7 +151,7 @@ const ProductManagement = () => {
     setCurrentProduct({
       ...product,
       categoryId: categoryId,
-      variants: variantsForForm, // Use stringified variants
+      variants: variantsForForm,
     });
     setOpenUpdateDialog(true);
   };
@@ -170,19 +186,17 @@ const ProductManagement = () => {
   const handleUpdate = async () => {
     setError("");
 
-    // Final payload structure matches productSchema
     const payload = {
       name: currentProduct.name,
       description: currentProduct.description,
       categoryId: currentProduct.categoryId,
       variants: currentProduct.variants
         .map((v) => ({
-          // Must ensure numerical types before sending to backend
           ...v,
           price: parseFloat(v.price),
           stockQty: parseInt(v.stockQty),
         }))
-        .filter((v) => v.name && v.price >= 0 && v.stockQty != null), // Filter out incomplete variants
+        .filter((v) => v.name && v.price >= 0 && v.stockQty != null),
     };
 
     if (payload.variants.length === 0) {
@@ -239,7 +253,6 @@ const ProductManagement = () => {
           </Alert>
         )}
 
-        {/* Products Table (READ) is the same as before */}
         <TableContainer>
           <Table size="small">
             <TableHead>
@@ -253,14 +266,14 @@ const ProductManagement = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {products.length === 0 ? (
+              {paginatedProducts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
                     No products found.
                   </TableCell>
                 </TableRow>
               ) : (
-                products.map((product) => (
+                paginatedProducts.map((product) => (
                   <React.Fragment key={product._id}>
                     <TableRow hover>
                       <TableCell sx={{ maxWidth: 200 }}>
@@ -388,10 +401,19 @@ const ProductManagement = () => {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={products.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
         </TableContainer>
       </Paper>
 
-      {/* --- Update Product Dialog (Full Edit) --- */}
+      {/* Update Dialog remains unchanged */}
       <Dialog
         open={openUpdateDialog}
         onClose={() => setOpenUpdateDialog(false)}
@@ -402,7 +424,6 @@ const ProductManagement = () => {
         <DialogContent>
           {currentProduct && (
             <>
-              {/* --- Core Details Section --- */}
               <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
                   Core Details
@@ -459,7 +480,6 @@ const ProductManagement = () => {
                 </Grid>
               </Paper>
 
-              {/* --- Variants Management Section --- */}
               <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
                 Product Variants ({currentProduct.variants.length})
               </Typography>
@@ -572,7 +592,6 @@ const ProductManagement = () => {
         </DialogActions>
       </Dialog>
 
-      {/* --- Delete Confirmation Dialog is the same as before --- */}
       <Dialog
         open={openDeleteDialog}
         onClose={() => setOpenDeleteDialog(false)}
