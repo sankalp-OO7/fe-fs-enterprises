@@ -167,6 +167,10 @@ const addMultipleVariantsToCart = (product, selectedVariantIds, quantities) => {
         cartOpen,
         openCart,
         closeCart,
+        snackbarOpen,
+        snackbarMessage,
+        closeSnackbar,
+        showMessage,
       }}>
       {children}
     </CartContext.Provider>
