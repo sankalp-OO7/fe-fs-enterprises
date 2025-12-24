@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
 import { useCart } from "../../context/CartContext";
@@ -22,6 +22,11 @@ import {
   InputAdornment,
   Paper,
   Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  useTheme,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
@@ -50,25 +55,30 @@ const getDefaultImageForProduct = (productId) => {
 
 const ProductDetailsPage = () => {
   const { productId } = useParams();
+  const theme = useTheme();
   const navigate = useNavigate();
-  const { addItemToCart, snackbarOpen, snackbarMessage, closeSnackbar } = useCart();
+  const { addItemToCart, snackbarOpen, snackbarMessage, closeSnackbar } =
+    useCart();
   const { isAuthenticated, isAdmin } = useAuth();
 
   const [product, setProduct] = useState({
-    productDetails:{}, variants: [],
+    productDetails: {},
+    variants: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [variantSearchTerm, setVariantSearchTerm] = useState("");
   const [openVariantDialog, setOpenVariantDialog] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
-
+  const [selectedBrandCategory, setSelectedBrandCategory] = useState("");
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
       setError("");
       try {
-        const response = await axiosClient.get(`/products/${productId}/variants`);
+        const response = await axiosClient.get(
+          `/products/${productId}/variants`
+        );
 
         setProduct({
           productDetails: response.data.product,
@@ -102,24 +112,31 @@ const ProductDetailsPage = () => {
 
     return `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`;
   }, [product]);
-
+  console.log("Selected Brand Category:", selectedBrandCategory);
   // Filter variants based on search term
-  const filteredVariants = useMemo(() => {
-    if (!product || !product.variants) return [];
-    if (!variantSearchTerm.trim()) return product.variants;
+const filteredVariants = useMemo(() => {
+  if (!Array.isArray(product?.variants)) return [];
 
-    const searchTermLower = variantSearchTerm.toLowerCase();
-    return product.variants.filter((variant) => {
-      return (
-        (variant.name &&
-          variant.name.toLowerCase().includes(searchTermLower)) ||
-        (variant.description &&
-          variant.description.toLowerCase().includes(searchTermLower)) ||
-        (variant.sku && variant.sku.toLowerCase().includes(searchTermLower))
-      );
-    });
-  }, [product, variantSearchTerm]);
+  let filtered = [...product.variants];
 
+  // ✅ BRAND FILTER (always apply)
+  if (selectedBrandCategory?.trim()) {
+    filtered = filtered.filter(
+      (item) => item.brand === selectedBrandCategory
+    );
+  }
+
+  // ✅ SEARCH FILTER (optional)
+  if (variantSearchTerm.trim()) {
+    const search = variantSearchTerm.toLowerCase();
+    filtered = filtered.filter((item) =>
+      item.variantName?.toLowerCase().includes(search)
+    );
+  }
+
+  console.log("Filtered variants:", filtered.length);
+  return filtered;
+}, [product.variants, variantSearchTerm, selectedBrandCategory]);
   const handleOpenVariant = (variant) => {
     setSelectedVariant(variant);
     setOpenVariantDialog(true);
@@ -127,6 +144,9 @@ const ProductDetailsPage = () => {
 
   const handleClearVariantSearch = () => {
     setVariantSearchTerm("");
+  };
+  const handleBrandCategoryChange = (event) => {
+    setSelectedBrandCategory(event.target.value);
   };
 
   const handleAddToCart = (variant, qty) => {
@@ -178,7 +198,6 @@ const ProductDetailsPage = () => {
       </Box>
 
       <Grid container spacing={4}>
-
         <Grid item xs={12} md={7}>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h4" fontWeight={800} gutterBottom>
@@ -228,28 +247,30 @@ const ProductDetailsPage = () => {
                   placeholder="Search variants by name, description, or SKU..."
                   value={variantSearchTerm}
                   onChange={(e) => setVariantSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon color="primary" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: variantSearchTerm && (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={handleClearVariantSearch}
-                          edge="end"
-                        >
-                          <ClearIcon fontSize="small" />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      borderRadius: 2,
-                      backgroundColor: "white",
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "primary.main",
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon color="primary" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: variantSearchTerm && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={handleClearVariantSearch}
+                            edge="end"
+                          >
+                            <ClearIcon fontSize="small" />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        borderRadius: 2,
+                        backgroundColor: "white",
+                        "&:hover .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "primary.main",
+                        },
                       },
                     },
                   }}
@@ -259,6 +280,42 @@ const ProductDetailsPage = () => {
                     },
                   }}
                 />
+              </Grid>
+              {/* dropdown have all brands name*/}
+              <Grid item xs={12} md={8} lg={9}>
+                <FormControl
+                  variant="outlined"
+                  size="small"
+                  sx={{
+                    // Ensure full width on mobile, fixed width on tablets/desktop
+                    minWidth: { xs: "100%", sm: 180 },
+                    flexShrink: 0,
+                  }}
+                >
+                  <InputLabel>Filter By Brand</InputLabel>
+                  <Select
+                    value={selectedBrandCategory}
+                    onChange={(e) => handleBrandCategoryChange(e)}
+                    label="Filter By Brand"
+                    sx={{
+                      borderRadius: "12px",
+                      backgroundColor: theme.palette.background.default,
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>All</em>
+                    </MenuItem>
+                    {Array.isArray(product.variants) &&
+                      product.variants.map((variant) => (
+                        <MenuItem
+                          key={`${variant.brand}-${variant._id}`}
+                          value={variant.brand}
+                        >
+                          {variant.brand}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} md={4} lg={3}>
                 <Box
@@ -369,11 +426,17 @@ const ProductDetailsPage = () => {
                         </Box>
                       )}
                     </Box>
-                    <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+                    <CardContent
+                      sx={{
+                        flexGrow: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
                       <Typography variant="h6" fontWeight={700} gutterBottom>
                         {variant.variantName}
                       </Typography>
-                       <Typography variant="h7" fontWeight={700} gutterBottom>
+                      <Typography variant="h7" fontWeight={700} gutterBottom>
                         Brand: {variant?.brand}
                       </Typography>
                       <Typography
@@ -407,7 +470,10 @@ const ProductDetailsPage = () => {
                               fontSize: "1.1rem",
                             }}
                           >
-                            ₹{isAuthenticated ? variant?.actualPrice?.toFixed(2) || "N/A" : "Login to view"}
+                            ₹
+                            {isAuthenticated
+                              ? variant?.actualPrice?.toFixed(2) || "N/A"
+                              : "Login to view"}
                           </Typography>
                           <Typography
                             variant="body2"
@@ -476,5 +542,3 @@ const ProductDetailsPage = () => {
 };
 
 export default ProductDetailsPage;
-
-

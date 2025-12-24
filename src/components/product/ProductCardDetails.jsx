@@ -2,13 +2,7 @@ import React from "react";
 import {
   CardContent,
   Typography,
-  Stack,
-  Button,
-  Box,
-  Grid,
 } from "@mui/material";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import InventoryIcon from "@mui/icons-material/Inventory";
 
 
 const ProductCardDetails = ({
@@ -61,7 +55,7 @@ const ProductCardDetails = ({
         {product.description}
       </Typography>
 
-      {/* PRICE */}
+      {/* PRICE
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -80,7 +74,7 @@ const ProductCardDetails = ({
             {priceDisplay}
           </Typography>
         )}
-      </Stack>
+      </Stack> */}
     </CardContent>
   );
 };
