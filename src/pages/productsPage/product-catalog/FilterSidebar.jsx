@@ -72,7 +72,6 @@ const FilterBar = ({
   onClearFilters,
 }) => {
   const theme = useTheme();
-
   return (
     <FilterPaper elevation={0}>
       {/* Main Responsive Container Stack 
@@ -153,11 +152,13 @@ const FilterBar = ({
               <MenuItem value="">
                 <em>All Categories</em>
               </MenuItem>
-              {categories.map((cat) => (
-                <MenuItem key={cat._id} value={cat._id}>
-                  {cat.name}
-                </MenuItem>
-              ))}
+             {Array.isArray(categories) &&
+  categories.map((cat) => (
+    <MenuItem key={cat._id} value={cat._id}>
+      {cat.name}
+    </MenuItem>
+  ))
+}
             </Select>
           </FormControl>
 

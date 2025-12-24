@@ -55,7 +55,6 @@ const AddToCartDialog = ({ open, onClose, product, onAddToCart }) => {
 
 const handleConfirm = () => {
   if (selectedVariants.size > 0) {
-    console.log('Adding to cart:', product.name, Array.from(selectedVariants), quantities);
     onAddToCart(product, Array.from(selectedVariants), quantities);
     // Reset locally here as well or after dialog closes
     setSelectedVariants(new Set());

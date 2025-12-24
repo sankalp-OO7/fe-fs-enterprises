@@ -40,7 +40,7 @@ const ProductCardDetails = ({
           WebkitBoxOrient: "vertical",
         }}
       >
-        {product.name}
+        {product.productName}
       </Typography>
 
       {/* DESCRIPTION */}

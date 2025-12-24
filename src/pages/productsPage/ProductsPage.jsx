@@ -9,7 +9,6 @@ import AddProduct from "./AddProduct";
 
 const ProductPage = ({ adminOnlyy, isAuthenticated }) => {
   const [activePage, setActivePage] = useState("products"); // default
-  console.log(adminOnlyy, "adminOnlyy prop in ProductPage");
 
   const renderPage = () => {
     switch (activePage) {

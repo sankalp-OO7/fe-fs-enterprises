@@ -73,7 +73,7 @@ const SingleVariantDialog = ({ open, onClose, variant, onAddToCart }) => {
 
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {variant.name}
+              {variant.variantName}
             </Typography>
 
             <Typography variant="body2" color="text.secondary">
@@ -84,7 +84,7 @@ const SingleVariantDialog = ({ open, onClose, variant, onAddToCart }) => {
               variant="h6"
               sx={{ color: "primary.main", mt: 1, fontWeight: 700 }}
             >
-              ₹{variant.price?.toFixed(2)}
+              ₹{variant.actualPrice?.toFixed(2)}
             </Typography>
 
             <Typography
@@ -123,7 +123,7 @@ const SingleVariantDialog = ({ open, onClose, variant, onAddToCart }) => {
           </Typography>
 
           <Typography variant="h6" sx={{ color: "success.main", fontWeight: 700 }}>
-            ₹{(variant.price * qty).toFixed(2)}
+            ₹{(variant.actualPrice * qty).toFixed(2)}
           </Typography>
         </Stack>
       </DialogContent>

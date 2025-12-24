@@ -266,7 +266,6 @@ const ProductForm = () => {
       setError(
         "Failed to load categories. Cannot create product without them."
       );
-      console.log(err);
     } finally {
       setCategoriesLoading(false);
     }

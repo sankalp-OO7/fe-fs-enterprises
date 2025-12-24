@@ -60,18 +60,18 @@ const ProductCard = ({
     categories.find((c) => c._id === product.categoryId)?.name ||
     "Uncategorized";
 
-  const mainVariant = product.variants[0];
-  const hasMultipleVariants = product.variants.length > 1;
-  const totalStock = product.variants.reduce((sum, v) => sum + v.stockQty, 0);
+  const mainVariant = product?.variants?.[0] || {};
+  const hasMultipleVariants = product?.variants?.length > 1;
+  const totalStock = product?.variants?.reduce((sum, v) => sum + v.stockQty, 0);
   const isOutOfStock = totalStock === 0;
 
-  const prices = product.variants.map((v) => v.price);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const priceDisplay =
-    hasMultipleVariants && minPrice !== maxPrice
-      ? `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
-      : `₹${mainVariant ? mainVariant.price.toFixed(2) : "N/A"}`;
+  const prices = product?.variants?.map((v) => v.price);
+  // const minPrice = Math.min(...prices);
+  // const maxPrice = Math.max(...prices);
+  const priceDisplay =0
+    // hasMultipleVariants && minPrice !== maxPrice
+    //   ? `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
+    //   : `₹${mainVariant ? mainVariant.price.toFixed(2) : "N/A"}`;
 
   const defaultImages = [
     "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660477/fs/Fs3_iros0a.jpg",
@@ -102,7 +102,7 @@ const ProductCard = ({
           <StyledCardMedia
             component="img"
             image={mainVariant?.imageUrl || pickedImage}
-            alt={product.name}
+            alt={product.productName}
             className="product-image"
           />
 

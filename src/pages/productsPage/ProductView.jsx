@@ -57,8 +57,8 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
           axiosClient.get(API_PRODUCT_BASE),
           axiosClient.get(API_CATEGORY_BASE),
         ]);
-        setProducts(productsResponse.data);
-        setCategories(categoriesResponse.data);
+        setProducts(productsResponse.data.data);
+        setCategories(categoriesResponse.data.data);
       } catch (err) {
         setError("Failed to fetch products or categories.");
         console.error(err);
@@ -93,8 +93,9 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = useMemo(() => {
+    if (!Array.isArray(filteredProducts)) return [];
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    return filteredProducts?.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredProducts, currentPage]);
 
   useEffect(() => {

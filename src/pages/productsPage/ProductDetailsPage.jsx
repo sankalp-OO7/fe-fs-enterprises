@@ -54,7 +54,9 @@ const ProductDetailsPage = () => {
   const { addItemToCart, snackbarOpen, snackbarMessage, closeSnackbar } = useCart();
   const { isAuthenticated, isAdmin } = useAuth();
 
-  const [product, setProduct] = useState(null);
+  const [product, setProduct] = useState({
+    productDetails:{}, variants: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [variantSearchTerm, setVariantSearchTerm] = useState("");
@@ -66,8 +68,12 @@ const ProductDetailsPage = () => {
       setLoading(true);
       setError("");
       try {
-        const response = await axiosClient.get(`/products/${productId}`);
-        setProduct(response.data);
+        const response = await axiosClient.get(`/products/${productId}/variants`);
+
+        setProduct({
+          productDetails: response.data.product,
+          variants: response.data.data,
+        });
       } catch (err) {
         console.error(err);
         setError("Failed to load product details.");
@@ -86,7 +92,7 @@ const ProductDetailsPage = () => {
       return "Price not available";
     }
 
-    const prices = product.variants.map((v) => v.price);
+    const prices = product?.variants.map((v) => v.actualPrice);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
 
@@ -172,27 +178,11 @@ const ProductDetailsPage = () => {
       </Box>
 
       <Grid container spacing={4}>
-        <Grid item xs={12} md={5}>
-          <Card
-            sx={{
-              borderRadius: 3,
-              overflow: "hidden",
-              boxShadow: 4,
-            }}
-          >
-            <CardMedia
-              component="img"
-              image={pickedImage}
-              alt={product.name}
-              sx={{ height: 320, objectFit: "cover" }}
-            />
-          </Card>
-        </Grid>
 
         <Grid item xs={12} md={7}>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h4" fontWeight={800} gutterBottom>
-              {product.name}
+              {product.productDetails?.productName || "Unnamed Product"}
             </Typography>
 
             <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
@@ -210,10 +200,6 @@ const ProductDetailsPage = () => {
                 variant="outlined"
               />
             </Stack>
-
-            <Typography variant="body1" color="text.secondary">
-              {product.description || "No description available."}
-            </Typography>
           </Box>
         </Grid>
       </Grid>
@@ -385,7 +371,10 @@ const ProductDetailsPage = () => {
                     </Box>
                     <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
                       <Typography variant="h6" fontWeight={700} gutterBottom>
-                        {variant.name}
+                        {variant.variantName}
+                      </Typography>
+                       <Typography variant="h7" fontWeight={700} gutterBottom>
+                        Brand: {variant?.brand}
                       </Typography>
                       <Typography
                         variant="body2"
@@ -418,7 +407,7 @@ const ProductDetailsPage = () => {
                               fontSize: "1.1rem",
                             }}
                           >
-                            ₹{variant.price?.toFixed(2) || "N/A"}
+                            ₹{isAuthenticated ? variant?.actualPrice?.toFixed(2) || "N/A" : "Login to view"}
                           </Typography>
                           <Typography
                             variant="body2"
@@ -434,7 +423,7 @@ const ProductDetailsPage = () => {
                             fullWidth
                             startIcon={<ShoppingCartIcon />}
                             onClick={() => handleOpenVariant(variant)}
-                            disabled={variant.stockQty <= 0}
+                            // disabled={variant.stockQty <= 0}
                             sx={{
                               borderRadius: 2,
                               py: 1,

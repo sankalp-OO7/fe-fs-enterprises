@@ -40,7 +40,6 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 
 function App() {
   const { isAdmin, isAuthenticated } = useAuth();
-  console.log(isAdmin());
 
   return (
     <div>
