@@ -24,6 +24,7 @@ const ProductGrid = ({
   viewMode,
   onAddSingleVariant,
 }) => {
+  // console.log
   const navigate = useNavigate();
   return (
     <Box sx={{ width: "100%" }}>
@@ -69,7 +70,7 @@ const ProductGrid = ({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {product.name}
+                    {product.productName}
                   </Typography>
 
                   <Typography
@@ -86,13 +87,13 @@ const ProductGrid = ({
                     {product.description}
                   </Typography>
 
-                  <Chip
+                  {/* <Chip
                     label={`${product.variants.length} variant${
                       product.variants.length > 1 ? "s" : ""
                     }`}
                     size="small"
                     sx={{ display: { xs: "none", sm: "flex" } }}
-                  />
+                  /> */}
                 </Box>
 
                 {/* Price & Button */}
@@ -104,13 +105,13 @@ const ProductGrid = ({
                     flexShrink: 0,
                   }}
                 >
-                  <Typography
+                  {/* <Typography
                     variant="h6"
                     color="primary"
                     sx={{ fontWeight: 700, minWidth: 80, textAlign: "right" }}
                   >
                     ₹{product.variants[0]?.price?.toFixed(2)}
-                  </Typography>
+                  </Typography> */}
 
                   <Button
                     variant="contained"
