@@ -7,7 +7,7 @@ import {
   useInView,
   AnimatePresence,
 } from "framer-motion";
-// Removed: import Image from "next/image"; // <--- Removed this unused import
+// Removed: import Image from "next/image"; // <--- Removed this unused importj
 
 // Consistent color palette - using specific hex values for device consistency
 const colors = {
