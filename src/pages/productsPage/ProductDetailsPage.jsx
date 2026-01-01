@@ -70,7 +70,6 @@ const ProductDetailsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const {
-   
     data: product = { productDetails: {}, variants: [], priceRange: "" },
     isLoading,
     isError,
@@ -454,10 +453,11 @@ const ProductDetailsPage = () => {
                                 fontSize: "1.1rem",
                               }}
                             >
-                            
                               {isAuthenticated
-                                ? `₹${variant?.actualPrice?.toFixed(2) || "N/A"}`
-                                : "Login to view"}
+                                ? `₹${
+                                    variant?.actualPrice?.toFixed(2) || "N/A"
+                                  }`
+                                : "Please log in to view the price"}
                             </Typography>
 
                             <Typography
@@ -465,9 +465,10 @@ const ProductDetailsPage = () => {
                               color="text.secondary"
                               sx={{ fontWeight: 600 }}
                             >
-                             {isAuthenticated ? `Stock: ${variant.stockQty ?? 0}` : ""}
+                              {isAuthenticated
+                                ? `Stock: ${variant.stockQty ?? 0}`
+                                : ""}
                             </Typography>
-
                           </Stack>
                           {!isAdmin() && isAuthenticated && (
                             <Button
