@@ -18,17 +18,17 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import FilterSidebar from "./product-catalog/FilterSidebar";
 import ProductGrid from "./product-catalog/ProductGrid";
 import LoadingSkeleton from "./product-catalog/LoadingSkeleton";
+  import { useQuery } from "@tanstack/react-query";
+import { fetchProducts, fetchCategories } from "../../api/product.api";
 
 const API_PRODUCT_BASE = "/products";
 const API_CATEGORY_BASE = "/categories";
 const ITEMS_PER_PAGE = 20;
 
 const ProductView = ({ isAdmin, isAuthenticated }) => {
+
   const [variantProduct, setVariantProduct] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,28 +48,27 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
     closeSnackbar,
   } = useCart();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const [productsResponse, categoriesResponse] = await Promise.all([
-          axiosClient.get(API_PRODUCT_BASE),
-          axiosClient.get(API_CATEGORY_BASE),
-        ]);
-        setProducts(productsResponse.data.data);
-        console.log("Fetched products:", productsResponse.data.data);
-        setCategories(categoriesResponse.data.data);
-      } catch (err) {
-        setError("Failed to fetch products or categories.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-  console.log("Products fetched:", products);
+  const {
+  data: products = [],
+  isLoading: productsLoading,
+  isError: productsError,
+} = useQuery({
+  queryKey: ["products"],
+  queryFn: fetchProducts,
+});
+
+const {
+  data: categories = [],
+  isLoading: categoriesLoading,
+  isError: categoriesError,
+} = useQuery({
+  queryKey: ["categories"],
+  queryFn: fetchCategories,
+});
+
+
+
+
   const filteredProducts = useMemo(() => {
     let filtered = products;
 
@@ -130,17 +129,19 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
     addMultipleVariantsToCart(product, selectedVariants, quantities);
   };
 
-  if (loading) return <LoadingSkeleton />;
+if (productsLoading || categoriesLoading) {
+  return <LoadingSkeleton />;
+}
 
-  if (error) {
-    return (
-      <Box sx={{ mt: 5, px: 3 }}>
-        <Alert severity="error" sx={{ borderRadius: 3, fontSize: "1.1rem" }}>
-          {error}
-        </Alert>
-      </Box>
-    );
-  }
+if (productsError || categoriesError) {
+  return (
+    <Box sx={{ mt: 5, px: 3 }}>
+      <Alert severity="error" sx={{ borderRadius: 3, fontSize: "1.1rem" }}>
+        Failed to fetch products or categories.
+      </Alert>
+    </Box>
+  );
+}
 
   return (
     <Box sx={{ width: "100%", py: 2 }}>

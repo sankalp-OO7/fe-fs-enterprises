@@ -1,6 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axiosClient from "../../api/axiosClient";
 import { useCart } from "../../context/CartContext";
 import useAuth from "../../context/useAuth";
 import SingleVariantDialog from "../../components/product/SingleVariantDialog";
@@ -35,7 +34,8 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-
+import { useQuery } from "@tanstack/react-query";
+import { fetchProductWithVariants } from "../../api/product.api";
 const defaultImages = [
   "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660477/fs/Fs3_iros0a.jpg",
   "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660467/fs/Fs2_n5g4lm.webp",
@@ -62,44 +62,22 @@ const ProductDetailsPage = () => {
     useCart();
   const { isAuthenticated, isAdmin } = useAuth();
 
-  const [product, setProduct] = useState({
-    productDetails: {},
-    variants: [],
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [variantSearchTerm, setVariantSearchTerm] = useState("");
   const [openVariantDialog, setOpenVariantDialog] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedBrandCategory, setSelectedBrandCategory] = useState("");
   const ITEMS_PER_PAGE = 9;
   const [currentPage, setCurrentPage] = useState(1);
-  useEffect(() => {
-    const fetchProduct = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const response = await axiosClient.get(
-          `/products/${productId}/variants`
-        );
 
-        setProduct({
-          productDetails: response.data.product,
-          variants: response.data.data,
-        });
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load product details.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (productId) {
-      fetchProduct();
-    }
-  }, [productId]);
-
+  const {
+    data: product = { productDetails: {}, variants: [] },
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["product-details", productId],
+    queryFn: () => fetchProductWithVariants(productId),
+    enabled: !!productId, // only run when id exists
+  });
   useEffect(() => {
     setCurrentPage(1);
   }, [variantSearchTerm, selectedBrandCategory]);
@@ -174,7 +152,7 @@ const ProductDetailsPage = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 6, textAlign: "center" }}>
         <CircularProgress />
@@ -182,10 +160,10 @@ const ProductDetailsPage = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Alert severity="error">{error}</Alert>
+        <Alert severity="error">Failed to load product details.</Alert>
       </Container>
     );
   }

@@ -6,6 +6,7 @@ import App from "./App";
 import AuthProvider from "./context/AuthProvider";
 import "./index.css";
 import { CartProvider } from "./context/CartContext.jsx";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const theme = createTheme({
   palette: {
@@ -19,6 +20,16 @@ const theme = createTheme({
   },
 });
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 min (no refetch)
+      cacheTime: 30 * 60 * 1000, // 30 min cache
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
@@ -26,7 +37,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <CssBaseline />
         <AuthProvider>
           <CartProvider>
-          <App />
+            <QueryClientProvider client={queryClient}>
+              <App />
+            </QueryClientProvider>
           </CartProvider>
         </AuthProvider>
       </ThemeProvider>
