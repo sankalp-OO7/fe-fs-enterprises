@@ -58,6 +58,7 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
           axiosClient.get(API_CATEGORY_BASE),
         ]);
         setProducts(productsResponse.data.data);
+        console.log("Fetched products:", productsResponse.data.data);
         setCategories(categoriesResponse.data.data);
       } catch (err) {
         setError("Failed to fetch products or categories.");
@@ -68,7 +69,7 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
     };
     fetchData();
   }, []);
-
+  console.log("Products fetched:", products);
   const filteredProducts = useMemo(() => {
     let filtered = products;
 
@@ -80,11 +81,11 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
     }
 
     if (searchTerm) {
-      const lowerCaseSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(
+      const lowerCaseSearch = searchTerm?.toLowerCase();
+      filtered = filtered?.filter(
         (product) =>
-          product.name.toLowerCase().includes(lowerCaseSearch) ||
-          product.description.toLowerCase().includes(lowerCaseSearch)
+          product?.productName.toLowerCase().includes(lowerCaseSearch) ||
+          product?.description.toLowerCase().includes(lowerCaseSearch)
       );
     }
 

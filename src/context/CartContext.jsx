@@ -74,7 +74,7 @@ const addMultipleVariantsToCart = (product, selectedVariantIds, quantities) => {
 
   // Add single item to cart (for backward compatibility)
   const addItemToCart = (product, variant, quantity = 1) => {
-    if (!variant || variant.stockQty === 0) return;
+    // if (!variant || variant.stockQty === 0) return;
 
     const existingItemIndex = cart.findIndex(
       item => item.product._id === product._id && item.variant._id === variant._id

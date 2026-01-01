@@ -265,7 +265,7 @@ const handleConfirm = () => {
         <Button
           variant="contained"
           onClick={handleConfirm}
-          disabled={selectedVariants.size === 0}
+          // disabled={selectedVariants.size === 0}
           startIcon={<ShoppingCartIcon />}
           sx={{
             borderRadius: '10px',

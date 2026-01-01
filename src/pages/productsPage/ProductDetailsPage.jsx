@@ -27,6 +27,7 @@ import {
   Select,
   MenuItem,
   useTheme,
+  Pagination,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
@@ -71,6 +72,8 @@ const ProductDetailsPage = () => {
   const [openVariantDialog, setOpenVariantDialog] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedBrandCategory, setSelectedBrandCategory] = useState("");
+  const ITEMS_PER_PAGE = 9;
+  const [currentPage, setCurrentPage] = useState(1);
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
@@ -97,6 +100,13 @@ const ProductDetailsPage = () => {
     }
   }, [productId]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [variantSearchTerm, selectedBrandCategory]);
+
+  const handlePageChange = (_, value) => {
+    setCurrentPage(value);
+  };
   const priceInfo = useMemo(() => {
     if (!product || !product.variants || product.variants.length === 0) {
       return "Price not available";
@@ -114,29 +124,38 @@ const ProductDetailsPage = () => {
   }, [product]);
   console.log("Selected Brand Category:", selectedBrandCategory);
   // Filter variants based on search term
-const filteredVariants = useMemo(() => {
-  if (!Array.isArray(product?.variants)) return [];
+  const filteredVariants = useMemo(() => {
+    if (!Array.isArray(product?.variants)) return [];
 
-  let filtered = [...product.variants];
+    let filtered = [...product.variants];
 
-  // ✅ BRAND FILTER (always apply)
-  if (selectedBrandCategory?.trim()) {
-    filtered = filtered.filter(
-      (item) => item.brand === selectedBrandCategory
-    );
-  }
+    // ✅ BRAND FILTER (always apply)
+    if (selectedBrandCategory?.trim()) {
+      filtered = filtered.filter(
+        (item) => item.brand === selectedBrandCategory
+      );
+    }
 
-  // ✅ SEARCH FILTER (optional)
-  if (variantSearchTerm.trim()) {
-    const search = variantSearchTerm.toLowerCase();
-    filtered = filtered.filter((item) =>
-      item.variantName?.toLowerCase().includes(search)
-    );
-  }
+    // ✅ SEARCH FILTER (optional)
+    if (variantSearchTerm.trim()) {
+      const search = variantSearchTerm.toLowerCase();
+      filtered = filtered.filter((item) =>
+        item.variantName?.toLowerCase().includes(search)
+      );
+    }
 
-  console.log("Filtered variants:", filtered.length);
-  return filtered;
-}, [product.variants, variantSearchTerm, selectedBrandCategory]);
+    console.log("Filtered variants:", filtered.length);
+    return filtered;
+  }, [product.variants, variantSearchTerm, selectedBrandCategory]);
+
+  const totalPages = Math.ceil(filteredVariants?.length / ITEMS_PER_PAGE);
+
+  const paginatedVariants = useMemo(() => {
+    if (!Array.isArray(filteredVariants)) return [];
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredVariants.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredVariants, currentPage]);
+
   const handleOpenVariant = (variant) => {
     setSelectedVariant(variant);
     setOpenVariantDialog(true);
@@ -306,12 +325,13 @@ const filteredVariants = useMemo(() => {
                       <em>All</em>
                     </MenuItem>
                     {Array.isArray(product.variants) &&
-                      product.variants.map((variant) => (
-                        <MenuItem
-                          key={`${variant.brand}-${variant._id}`}
-                          value={variant.brand}
-                        >
-                          {variant.brand}
+                      [
+                        ...new Set(
+                          product.variants.map((variant) => variant.brand)
+                        ),
+                      ].map((brand) => (
+                        <MenuItem key={brand} value={brand}>
+                          {brand}
                         </MenuItem>
                       ))}
                   </Select>
@@ -381,135 +401,164 @@ const filteredVariants = useMemo(() => {
             </Paper>
           ) : (
             <Grid container spacing={3}>
-              {filteredVariants.map((variant) => (
-                <Grid key={variant._id} item xs={12} sm={6} md={4}>
-                  <Card
-                    sx={{
-                      borderRadius: 3,
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: 6,
-                      },
-                    }}
-                  >
-                    <Box sx={{ position: "relative" }}>
-                      <CardMedia
-                        component="img"
-                        image={
-                          variant.imageUrl ||
-                          getDefaultImageForProduct(product._id)
-                        }
-                        alt={variant.name}
-                        sx={{ height: 180, objectFit: "cover" }}
-                      />
-                      {variant.sku && (
-                        <Box
-                          sx={{
-                            position: "absolute",
-                            top: 12,
-                            right: 12,
-                            backgroundColor: "rgba(0,0,0,0.7)",
-                            color: "white",
-                            px: 1.5,
-                            py: 0.5,
-                            borderRadius: 2,
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            backdropFilter: "blur(4px)",
-                          }}
-                        >
-                          SKU: {variant.sku}
-                        </Box>
-                      )}
-                    </Box>
-                    <CardContent
+              <Grid container spacing={3}>
+                {paginatedVariants?.map((variant) => (
+                  <Grid key={variant._id} item xs={12} sm={6} md={4}>
+                    <Card
                       sx={{
-                        flexGrow: 1,
+                        borderRadius: 3,
+                        height: "100%",
                         display: "flex",
                         flexDirection: "column",
+                        transition: "all 0.3s ease",
+                        "&:hover": {
+                          transform: "translateY(-4px)",
+                          boxShadow: 6,
+                        },
                       }}
                     >
-                      <Typography variant="h6" fontWeight={700} gutterBottom>
-                        {variant.variantName}
-                      </Typography>
-                      <Typography variant="h7" fontWeight={700} gutterBottom>
-                        Brand: {variant?.brand}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        gutterBottom
-                        sx={{
-                          mb: 2,
-                          minHeight: 44,
-                          maxHeight: 44,
-                          overflow: "hidden",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {variant.description || "No description available."}
-                      </Typography>
-                      <Box sx={{ mt: "auto" }}>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="center"
-                          sx={{ mb: 2 }}
-                        >
-                          <Typography
-                            variant="h6"
+                      <Box sx={{ position: "relative" }}>
+                        <CardMedia
+                          component="img"
+                          image={
+                            variant.imageUrl ||
+                            getDefaultImageForProduct(product._id)
+                          }
+                          alt={variant.name}
+                          sx={{ height: 180, objectFit: "cover" }}
+                        />
+                        {variant.sku && (
+                          <Box
                             sx={{
-                              fontWeight: 900,
-                              color: "success.main",
-                              fontSize: "1.1rem",
-                            }}
-                          >
-                            ₹
-                            {isAuthenticated
-                              ? variant?.actualPrice?.toFixed(2) || "N/A"
-                              : "Login to view"}
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ fontWeight: 600 }}
-                          >
-                            Stock: {variant.stockQty ?? 0}
-                          </Typography>
-                        </Stack>
-                        {!isAdmin() && isAuthenticated && (
-                          <Button
-                            variant="contained"
-                            fullWidth
-                            startIcon={<ShoppingCartIcon />}
-                            onClick={() => handleOpenVariant(variant)}
-                            // disabled={variant.stockQty <= 0}
-                            sx={{
+                              position: "absolute",
+                              top: 12,
+                              right: 12,
+                              backgroundColor: "rgba(0,0,0,0.7)",
+                              color: "white",
+                              px: 1.5,
+                              py: 0.5,
                               borderRadius: 2,
-                              py: 1,
-                              fontWeight: 700,
-                              textTransform: "none",
-                              fontSize: "0.875rem",
-                              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                              "&:hover": {
-                                boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
-                              },
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              backdropFilter: "blur(4px)",
                             }}
                           >
-                            Add to Cart
-                          </Button>
+                            SKU: {variant.sku}
+                          </Box>
                         )}
                       </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
+                      <CardContent
+                        sx={{
+                          flexGrow: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                        }}
+                      >
+                        <Typography variant="h6" fontWeight={700} gutterBottom>
+                          {variant.variantName}
+                        </Typography>
+                        <Typography variant="h7" fontWeight={700} gutterBottom>
+                          Brand: {variant?.brand}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          gutterBottom
+                          sx={{
+                            mb: 2,
+                            minHeight: 44,
+                            maxHeight: 44,
+                            overflow: "hidden",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {variant.description || "No description available."}
+                        </Typography>
+                        <Box sx={{ mt: "auto" }}>
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            sx={{ mb: 2 }}
+                          >
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 900,
+                                color: "success.main",
+                                fontSize: "1.1rem",
+                              }}
+                            >
+                              ₹
+                              {isAuthenticated
+                                ? variant?.actualPrice?.toFixed(2) || "N/A"
+                                : "Login to view"}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ fontWeight: 600 }}
+                            >
+                              Stock: {variant.stockQty ?? 0}
+                            </Typography>
+                          </Stack>
+                          {!isAdmin() && isAuthenticated && (
+                            <Button
+                              variant="contained"
+                              fullWidth
+                              startIcon={<ShoppingCartIcon />}
+                              onClick={() => handleOpenVariant(variant)}
+                              // disabled={variant.stockQty <= 0}
+                              sx={{
+                                borderRadius: 2,
+                                py: 1,
+                                fontWeight: 700,
+                                textTransform: "none",
+                                fontSize: "0.875rem",
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                                "&:hover": {
+                                  boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
+                                },
+                              }}
+                            >
+                              Add to Cart
+                            </Button>
+                          )}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+                  <Pagination
+                    count={totalPages}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                    size="medium"
+                    showFirstButton
+                    showLastButton
+                    sx={{
+                      "& .MuiPaginationItem-root": {
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                        borderRadius: 2,
+                      },
+                      "& .MuiPaginationItem-root.Mui-selected": {
+                        background:
+                          "linear-gradient(135deg, #2196F3 0%, #21CBF3 100%)",
+                        color: "white",
+                        boxShadow: "0 4px 12px rgba(33, 150, 243, 0.3)",
+                      },
+                    }}
+                  />
+                </Box>
+              )}
             </Grid>
           )}
         </Box>
