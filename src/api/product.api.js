@@ -15,5 +15,6 @@ export const fetchProductWithVariants = async (productId) => {
   return {
     productDetails: res.data.product,
     variants: res.data.data,
+    priceRange: res.data.priceRange,
   };
 };

@@ -24,7 +24,7 @@ const ProductGrid = ({
   viewMode,
   onAddSingleVariant,
 }) => {
-  // console.log
+
   const navigate = useNavigate();
   return (
     <Box sx={{ width: "100%" }}>

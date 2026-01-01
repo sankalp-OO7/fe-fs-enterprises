@@ -52,23 +52,23 @@ function App() {
         <Route
           path="/products"
           element={
-            <ProtectedRoute>
+            // <ProtectedRoute>
               <ProductsPage
                 adminOnlyy={isAdmin()}
                 isAuthenticated={isAuthenticated}
               />
-            </ProtectedRoute>
+            // </ProtectedRoute>
           }
         />
         <Route
           path="/products/:productId"
           element={
-            <ProtectedRoute>
+            // <ProtectedRoute>
               <ProductDetailsPage
                 isAdmin={isAdmin()}
                 isAuthenticated={isAuthenticated}
               />
-            </ProtectedRoute>
+            // </ProtectedRoute>
           }
         />
         <Route

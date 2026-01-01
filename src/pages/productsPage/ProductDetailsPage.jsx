@@ -70,7 +70,8 @@ const ProductDetailsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const {
-    data: product = { productDetails: {}, variants: [] },
+   
+    data: product = { productDetails: {}, variants: [], priceRange: "" },
     isLoading,
     isError,
   } = useQuery({
@@ -85,22 +86,7 @@ const ProductDetailsPage = () => {
   const handlePageChange = (_, value) => {
     setCurrentPage(value);
   };
-  const priceInfo = useMemo(() => {
-    if (!product || !product.variants || product.variants.length === 0) {
-      return "Price not available";
-    }
 
-    const prices = product?.variants.map((v) => v.actualPrice);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-
-    if (minPrice === maxPrice) {
-      return `₹${minPrice.toFixed(2)}`;
-    }
-
-    return `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`;
-  }, [product]);
-  console.log("Selected Brand Category:", selectedBrandCategory);
   // Filter variants based on search term
   const filteredVariants = useMemo(() => {
     if (!Array.isArray(product?.variants)) return [];
@@ -122,7 +108,6 @@ const ProductDetailsPage = () => {
       );
     }
 
-    console.log("Filtered variants:", filtered.length);
     return filtered;
   }, [product.variants, variantSearchTerm, selectedBrandCategory]);
 
@@ -208,7 +193,7 @@ const ProductDetailsPage = () => {
                 color="primary"
                 variant="outlined"
               />
-              <Chip label={priceInfo} color="success" />
+              <Chip label={product?.priceRange} color="success" />
               <Chip
                 label={`${product.variants?.length || 0} variant${
                   (product.variants?.length || 0) === 1 ? "" : "s"
@@ -469,18 +454,20 @@ const ProductDetailsPage = () => {
                                 fontSize: "1.1rem",
                               }}
                             >
-                              ₹
+                            
                               {isAuthenticated
-                                ? variant?.actualPrice?.toFixed(2) || "N/A"
+                                ? `₹${variant?.actualPrice?.toFixed(2) || "N/A"}`
                                 : "Login to view"}
                             </Typography>
+
                             <Typography
                               variant="body2"
                               color="text.secondary"
                               sx={{ fontWeight: 600 }}
                             >
-                              Stock: {variant.stockQty ?? 0}
+                             {isAuthenticated ? `Stock: ${variant.stockQty ?? 0}` : ""}
                             </Typography>
+
                           </Stack>
                           {!isAdmin() && isAuthenticated && (
                             <Button
