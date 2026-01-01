@@ -9,7 +9,7 @@ import {
 } from "framer-motion";
 // Removed: import Image from "next/image"; // <--- Removed this unused import
 
-// Consistent color palette - using specific hex values for device consistency
+// Consistent color palette - using specific hex values for device consistencyd
 const colors = {
   primary: {
     orange: "#f97316", // Orange-600
