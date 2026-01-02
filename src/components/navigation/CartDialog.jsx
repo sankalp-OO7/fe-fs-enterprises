@@ -9,6 +9,12 @@ import {
   List,
   Box,
   Button,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
 } from "@mui/material";
 import { ShoppingCart, Close } from "@mui/icons-material";
 import CartItem from "./CartItem";
@@ -18,7 +24,6 @@ const CartDialog = ({
   cart,
   cartOpen,
   getTotalCartItems,
-  getTotalCartValue,
   updateCartItemQuantity,
   removeFromCart,
   clearCart,
@@ -26,43 +31,96 @@ const CartDialog = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    customerName: "",
+    gstNo: "",
+    billType: "GST",
+    materialType: "Cash",
+    shippingAddress: "",
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Get price based on bill type
+  const getPriceByBillType = (variant, billType) => {
+    if (!variant) return 0;
+
+    switch (billType) {
+      case "GST":
+        return variant.invoiceRate ?? variant.actualPrice ?? 0;
+      case "Bill":
+        return variant.cashMemoRate ?? variant.actualPrice ?? 0;
+      case "Estimate":
+        return variant.estimateRate ?? variant.actualPrice ?? 0;
+      default:
+        return variant.actualPrice ?? 0;
+    }
+  };
+
+  // Calculate total cart value
+  const getTotalCartValue = () => {
+    return cart.reduce((sum, item) => {
+      const price = getPriceByBillType(item.variant, formData.billType);
+      return sum + price * item.quantity;
+    }, 0);
+  };
 
   const handleCheckout = async () => {
     setLoading(true);
     setError("");
+
     try {
       if (cart.length === 0) {
         setError("Your cart is empty.");
         return;
       }
 
-      const orderPayload = {
-        items: cart.map((item) => ({
-          productId: item.product._id,
-          variantId: item.variant._id,
-          quantity: item.quantity,
-          price: item.variant.price,
-        })),
-        totalAmount: cart.reduce(
-          (sum, item) => sum + item.variant.price * item.quantity,
-          0
-        ),
-        shippingAddress: "123 Demo St, Sample City, Country",
-        paymentMethod: "Cash on Delivery",
-        paymentStatus: "Paid",
+      if (!formData.customerName) {
+        setError("Please enter customer name");
+        return;
+      }
+
+      const payload = {
+        customerName: formData.customerName,
+        gstNo: formData.gstNo,
+        billType: formData.billType,
+        materialType: formData.materialType,
+        shippingAddress: formData.shippingAddress,
+        items: cart.map((item) => {
+          const price = getPriceByBillType(item.variant, formData.billType);
+          return {
+            productId: item.product.productDetails.id,
+            variantId: item.variant._id,
+            quantity: item.quantity,
+            price: price,
+          };
+        }),
+        totalAmount: getTotalCartValue(),
+        paymentStatus: formData.materialType === "Credit" ? "Pending" : "Paid",
       };
 
-      const response = await axiosClient.post("/orders", orderPayload);
+      const response = await axiosClient.post("/orders", payload);
+      
       if (response.status === 201) {
         alert("Order placed successfully!");
         clearCart();
+        setFormData({
+          customerName: "",
+          gstNo: "",
+          billType: "GST",
+          materialType: "Cash",
+          shippingAddress: "",
+        });
         closeCart();
       } else {
         setError("Failed to place the order. Please try again.");
       }
     } catch (err) {
       console.error(err);
-      setError("An error occurred during checkout.");
+      setError(err.response?.data?.message || "An error occurred during checkout.");
     } finally {
       setLoading(false);
     }
@@ -72,12 +130,15 @@ const CartDialog = ({
     <Dialog
       open={cartOpen}
       onClose={closeCart}
-      maxWidth="md"
+      maxWidth="sm"
       fullWidth
+      fullScreen={window.innerWidth < 600}
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          maxHeight: { xs: "90vh", sm: "85vh" },
+          borderRadius: { xs: 0, sm: 3 },
+          maxHeight: { xs: "100vh", sm: "90vh" },
+          m: { xs: 0, sm: 2 },
+          width: { xs: "100%", sm: "100%" },
         },
       }}
     >
@@ -86,6 +147,9 @@ const CartDialog = ({
           pb: 2,
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
           color: "white",
+          position: "sticky",
+          top: 0,
+          zIndex: 1,
         }}
       >
         <Stack
@@ -120,7 +184,7 @@ const CartDialog = ({
         </Stack>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
         {cart.length === 0 ? (
           <Box sx={{ p: 6, textAlign: "center" }}>
             <ShoppingCart
@@ -144,11 +208,94 @@ const CartDialog = ({
           </Box>
         ) : (
           <>
+            {/* Customer Details Form */}
+            <Box
+              sx={{
+                mb: 3,
+                p: 2,
+                bgcolor: "grey.50",
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+                Customer Details
+              </Typography>
+              
+              <Stack spacing={2}>
+                <TextField
+                  label="Customer Name"
+                  name="customerName"
+                  value={formData.customerName}
+                  onChange={handleInputChange}
+                  fullWidth
+                  size="small"
+                  required
+                />
+
+                <TextField
+                  label="GST No"
+                  name="gstNo"
+                  value={formData.gstNo}
+                  onChange={handleInputChange}
+                  fullWidth
+                  size="small"
+                />
+
+                <Stack direction="row" spacing={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Bill Type</InputLabel>
+                    <Select
+                      name="billType"
+                      value={formData.billType}
+                      onChange={handleInputChange}
+                      label="Bill Type"
+                    >
+                      <MenuItem value="GST">GST</MenuItem>
+                      <MenuItem value="Bill">Bill</MenuItem>
+                      <MenuItem value="Estimate">Estimate</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Material Type</InputLabel>
+                    <Select
+                      name="materialType"
+                      value={formData.materialType}
+                      onChange={handleInputChange}
+                      label="Material Type"
+                    >
+                      <MenuItem value="Cash">Cash</MenuItem>
+                      <MenuItem value="Credit">Credit</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Stack>
+
+                <TextField
+                  label="Shipping Address"
+                  name="shippingAddress"
+                  value={formData.shippingAddress}
+                  onChange={handleInputChange}
+                  fullWidth
+                  multiline
+                  rows={2}
+                  size="small"
+                />
+              </Stack>
+            </Box>
+
+            {/* Cart Items */}
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+              Cart Items
+            </Typography>
+            
             <List
               sx={{
-                maxHeight: { xs: 360, sm: 420 },
+                maxHeight: { xs: 300, sm: 350 },
                 overflowY: "auto",
                 p: 0,
+                mb: 2,
                 "&::-webkit-scrollbar": { width: 8 },
                 "&::-webkit-scrollbar-thumb": {
                   backgroundColor: "rgba(0,0,0,0.2)",
@@ -162,19 +309,23 @@ const CartDialog = ({
                   item={item}
                   updateQuantity={updateCartItemQuantity}
                   removeItem={removeFromCart}
+                  billType={formData.billType}
+                  getPriceByBillType={getPriceByBillType}
                 />
               ))}
             </List>
 
+            {/* Summary */}
             <Box
               sx={{
-                p: 3,
+                p: 2,
                 bgcolor: "grey.50",
-                borderTop: "2px solid",
+                borderRadius: 2,
+                border: "1px solid",
                 borderColor: "divider",
               }}
             >
-              <Stack spacing={2.5}>
+              <Stack spacing={2}>
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -182,6 +333,15 @@ const CartDialog = ({
                 >
                   <Box>
                     <Typography variant="body2" color="text.secondary">
+                      Bill Type
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {formData.billType}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" align="right">
                       Total Amount
                     </Typography>
                     <Typography
@@ -191,57 +351,53 @@ const CartDialog = ({
                       ₹{getTotalCartValue().toFixed(2)}
                     </Typography>
                   </Box>
+                </Stack>
 
+                {error && (
+                  <Alert severity="error" sx={{ borderRadius: 1 }}>
+                    {error}
+                  </Alert>
+                )}
+
+                <Stack direction="row" spacing={2}>
                   <Button
                     variant="outlined"
                     color="error"
                     onClick={clearCart}
                     sx={{
+                      flex: 1,
                       textTransform: "none",
                       fontWeight: 600,
                       borderRadius: 2,
+                      py: 1.5,
                     }}
                   >
                     Clear Cart
                   </Button>
-                </Stack>
 
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  onClick={handleCheckout}
-                  disabled={loading}
-                  sx={{
-                    borderRadius: 2,
-                    py: 1.5,
-                    background:
-                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                    fontWeight: 700,
-                    fontSize: "1.05rem",
-                    textTransform: "none",
-                    boxShadow: "0 4px 20px rgba(102, 126, 234, 0.4)",
-                    transition: "all 0.3s ease",
-                    "&:hover": {
+                  <Button
+                    variant="contained"
+                    onClick={handleCheckout}
+                    disabled={loading || !formData.customerName}
+                    sx={{
+                      flex: 1,
+                      borderRadius: 2,
+                      py: 1.5,
                       background:
-                        "linear-gradient(135deg, #5a6fd8 0%, #6a4292 100%)",
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 6px 25px rgba(102, 126, 234, 0.5)",
-                    },
-                  }}
-                >
-                  {loading ? "Processing..." : "Proceed to Checkout"}
-                </Button>
-
-                {error && (
-                  <Typography
-                    color="error"
-                    variant="body2"
-                    sx={{ textAlign: "center", fontWeight: 500 }}
+                        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      fontWeight: 700,
+                      fontSize: "1.05rem",
+                      textTransform: "none",
+                      boxShadow: "0 4px 20px rgba(102, 126, 234, 0.4)",
+                      "&:hover": {
+                        background:
+                          "linear-gradient(135deg, #5a6fd8 0%, #6a4292 100%)",
+                      },
+                    }}
                   >
-                    {error}
-                  </Typography>
-                )}
+                    {loading ? "Processing..." : "Place Order"}
+                  </Button>
+                </Stack>
               </Stack>
             </Box>
           </>

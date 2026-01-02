@@ -3,7 +3,6 @@ import {
   ListItem,
   ListItemAvatar,
   Avatar,
-  ListItemText,
   Typography,
   Stack,
   IconButton,
@@ -12,87 +11,170 @@ import {
 } from "@mui/material";
 import { Remove, Add, Delete } from "@mui/icons-material";
 
-const CartItem = ({ item, updateQuantity, removeItem }) => {
+const CartItem = ({ item, updateQuantity, removeItem, billType, getPriceByBillType }) => {
+  const price = getPriceByBillType(item.variant, billType);
+  const total = price * item.quantity;
+
   return (
     <>
       <ListItem
         sx={{
-          py: 2.5,
-          px: 3,
+          py: 1.5,
+          px: { xs: 1, sm: 2 },
+          alignItems: "flex-start",
           transition: "all 0.2s ease",
           "&:hover": {
             backgroundColor: "grey.50",
           },
         }}
       >
-        <ListItemAvatar>
+        {/* Product Image */}
+        <ListItemAvatar sx={{ minWidth: 60, mt: 1 }}>
           <Avatar
             src={item.variant.imageUrl}
-            alt={item.product.name}
+            alt={item.product.productDetails?.productName || "Product"}
             variant="rounded"
             sx={{
-              width: 70,
-              height: 70,
+              width: 60,
+              height: 60,
               borderRadius: 2,
-              boxShadow: 2,
+              boxShadow: 1,
             }}
           />
         </ListItemAvatar>
 
-        <ListItemText
-          primary={
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {item.product.name}
+        {/* Product Details */}
+        <Box sx={{ ml: 2, mr: 1, flex: 1, minWidth: 0 }}>
+          {/* Product Name */}
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 600,
+              mb: 0.5,
+              wordBreak: "break-word",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+            }}
+          >
+            {item.product.productDetails?.productName || "Product"}
+          </Typography>
+          
+          {/* Variant Name - with proper text wrapping */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: 1,
+              wordBreak: "break-word",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              fontSize: { xs: "0.8rem", sm: "0.875rem" },
+            }}
+          >
+            {item.variant.variantName}
+          </Typography>
+          
+          {/* Brand and UOM in a row */}
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{ mb: 1, flexWrap: "wrap", gap: 1 }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                bgcolor: "grey.100",
+                px: 1,
+                py: 0.3,
+                borderRadius: 1,
+                fontSize: { xs: "0.7rem", sm: "0.75rem" },
+              }}
+            >
+              Brand: {item.variant.brand}
             </Typography>
-          }
-          secondary={
-            <Stack spacing={0.5}>
-              <Typography variant="body2" color="text.secondary">
-                Variant: <strong>{item.variant.name}</strong>
+            
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                bgcolor: "grey.100",
+                px: 1,
+                py: 0.3,
+                borderRadius: 1,
+                fontSize: { xs: "0.7rem", sm: "0.75rem" },
+              }}
+            >
+              UOM: {item.variant.uom}
+            </Typography>
+          </Stack>
+          
+          {/* Price and Total */}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            spacing={{ xs: 0.5, sm: 2 }}
+            sx={{ mt: 1 }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: 700,
+                  color: "primary.main",
+                  fontSize: { xs: "0.9rem", sm: "1rem" },
+                }}
+              >
+                ₹{price.toFixed(2)}
               </Typography>
-              <Box>
-                <Typography
-                  component="span"
-                  variant="body1"
-                  sx={{
-                    fontWeight: 700,
-                    color: "primary.main",
-                    fontSize: "1.05rem",
-                  }}
-                >
-                  ₹{item.variant.price.toFixed(2)}
-                </Typography>
-                <Typography
-                  component="span"
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  {" "}
-                  × {item.quantity} ={" "}
-                </Typography>
-                <Typography
-                  component="span"
-                  variant="body1"
-                  sx={{ fontWeight: 700, color: "success.main" }}
-                >
-                  ₹{(item.variant.price * item.quantity).toFixed(2)}
-                </Typography>
-              </Box>
+              
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}
+              >
+                × {item.quantity}
+              </Typography>
             </Stack>
-          }
-          sx={{ ml: 2, mr: 2 }}
-        />
+            
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: 700,
+                color: "success.main",
+                fontSize: { xs: "0.9rem", sm: "1rem" },
+              }}
+            >
+              ₹{total.toFixed(2)}
+            </Typography>
+          </Stack>
+        </Box>
 
-        <Stack direction="row" alignItems="center" spacing={1}>
+        {/* Quantity Controls and Delete Button */}
+        <Stack
+          direction="column"
+          alignItems="flex-end"
+          justifyContent="space-between"
+          sx={{ minWidth: 100, height: "100%", ml: 1 }}
+        >
+          {/* Quantity Controls */}
           <Stack
             direction="row"
             alignItems="center"
             spacing={0.5}
             sx={{
-              border: "2px solid",
+              border: "1px solid",
               borderColor: "divider",
-              borderRadius: 2,
-              p: 0.5,
+              borderRadius: 1.5,
+              px: 0.5,
+              py: 0.3,
             }}
           >
             <IconButton
@@ -100,7 +182,9 @@ const CartItem = ({ item, updateQuantity, removeItem }) => {
               onClick={() => updateQuantity(item.id, item.quantity - 1)}
               disabled={item.quantity <= 1}
               sx={{
-                transition: "all 0.2s ease",
+                p: 0.3,
+                minWidth: 28,
+                minHeight: 28,
                 "&:hover": {
                   backgroundColor: "error.lighter",
                   color: "error.main",
@@ -112,10 +196,10 @@ const CartItem = ({ item, updateQuantity, removeItem }) => {
 
             <Typography
               sx={{
-                minWidth: 32,
+                minWidth: 24,
                 textAlign: "center",
                 fontWeight: 700,
-                fontSize: "1rem",
+                fontSize: { xs: "0.8rem", sm: "0.9rem" },
               }}
             >
               {item.quantity}
@@ -125,7 +209,9 @@ const CartItem = ({ item, updateQuantity, removeItem }) => {
               size="small"
               onClick={() => updateQuantity(item.id, item.quantity + 1)}
               sx={{
-                transition: "all 0.2s ease",
+                p: 0.3,
+                minWidth: 28,
+                minHeight: 28,
                 "&:hover": {
                   backgroundColor: "success.lighter",
                   color: "success.main",
@@ -136,15 +222,16 @@ const CartItem = ({ item, updateQuantity, removeItem }) => {
             </IconButton>
           </Stack>
 
+          {/* Delete Button */}
           <IconButton
             size="small"
             color="error"
             onClick={() => removeItem(item.id)}
             sx={{
-              transition: "all 0.2s ease",
+              mt: 1,
+              p: 0.5,
               "&:hover": {
                 backgroundColor: "error.lighter",
-                transform: "scale(1.1)",
               },
             }}
           >
