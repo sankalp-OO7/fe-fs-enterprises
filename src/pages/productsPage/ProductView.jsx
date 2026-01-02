@@ -80,12 +80,12 @@ const {
     }
 
     if (searchTerm) {
-      const lowerCaseSearch = searchTerm?.toLowerCase();
-      filtered = filtered?.filter(
-        (product) =>
-          product?.productName.toLowerCase().includes(lowerCaseSearch) ||
-          product?.description.toLowerCase().includes(lowerCaseSearch)
-      );
+      const lowerCaseSearch = (searchTerm || "").toLowerCase();
+      filtered = (filtered || []).filter((product) => {
+        const name = (product?.productName || "").toLowerCase();
+        const desc = (product?.description || "").toLowerCase();
+        return name.includes(lowerCaseSearch) || desc.includes(lowerCaseSearch);
+      });
     }
 
     return filtered;
@@ -113,12 +113,15 @@ const {
   };
 
   const handleAddToCart = (product) => {
-    if (product.variants.length === 1) {
-      addItemToCart(product, product.variants[0], 1);
-    } else {
-      setSelectedProduct(product);
-      setAddToCartDialogOpen(true);
+    const variants = Array.isArray(product?.variants) ? product.variants : [];
+
+    if (variants.length === 1) {
+      addItemToCart(product, variants[0], 1);
+      return;
     }
+
+    setSelectedProduct({ ...product, variants });
+    setAddToCartDialogOpen(true);
   };
 
   const handleSingleVariantAdd = (product, variant, qty) => {

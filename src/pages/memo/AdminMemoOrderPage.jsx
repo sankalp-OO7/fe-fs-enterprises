@@ -99,7 +99,10 @@ const GradientBox = styled(Box)(({ theme }) => ({
     right: "-50%",
     width: "200%",
     height: "200%",
-    background: `radial-gradient(circle, ${alpha("#ffffff", 0.15)} 0%, transparent 70%)`,
+    background: `radial-gradient(circle, ${alpha(
+      "#ffffff",
+      0.15
+    )} 0%, transparent 70%)`,
     animation: "float 8s ease-in-out infinite",
   },
   "@keyframes float": {
@@ -363,7 +366,14 @@ const AdminMemoOrdersPage = () => {
       </GradientBox>
 
       {/* Status Tabs */}
-      <Card sx={{ mb: 2, borderRadius: 3, boxShadow: 2, animation: `${fadeIn} 0.8s ease` }}>
+      <Card
+        sx={{
+          mb: 2,
+          borderRadius: 3,
+          boxShadow: 2,
+          animation: `${fadeIn} 0.8s ease`,
+        }}
+      >
         <Tabs
           value={tabValue}
           onChange={(e, newValue) => setTabValue(newValue)}
@@ -381,15 +391,21 @@ const AdminMemoOrdersPage = () => {
           <StyledTab value="All" label={`All (${orders.length})`} />
           <StyledTab
             value="Pending"
-            label={`Pending (${orders.filter((o) => o.status === "Pending").length})`}
+            label={`Pending (${
+              orders.filter((o) => o.status === "Pending").length
+            })`}
           />
           <StyledTab
             value="Completed"
-            label={`Completed (${orders.filter((o) => o.status === "Completed").length})`}
+            label={`Completed (${
+              orders.filter((o) => o.status === "Completed").length
+            })`}
           />
           <StyledTab
             value="Cancelled"
-            label={`Cancelled (${orders.filter((o) => o.status === "Cancelled").length})`}
+            label={`Cancelled (${
+              orders.filter((o) => o.status === "Cancelled").length
+            })`}
           />
         </Tabs>
       </Card>
@@ -457,14 +473,22 @@ const AdminMemoOrdersPage = () => {
         <Box sx={{ flex: 1 }} />
 
         <Typography variant="caption" color="text.secondary" fontWeight={600}>
-          Showing {paginatedOrders.length > 0 ? (page - 1) * rowsPerPage + 1 : 0}-
+          Showing{" "}
+          {paginatedOrders.length > 0 ? (page - 1) * rowsPerPage + 1 : 0}-
           {Math.min(page * rowsPerPage, filteredAndSortedOrders.length)} of{" "}
           {filteredAndSortedOrders.length}
         </Typography>
       </Box>
 
       {/* Table */}
-      <Card elevation={3} sx={{ borderRadius: 3, overflow: "hidden", animation: `${fadeIn} 1.2s ease` }}>
+      <Card
+        elevation={3}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          animation: `${fadeIn} 1.2s ease`,
+        }}
+      >
         <TableContainer sx={{ maxHeight: "calc(100vh - 420px)" }}>
           <Table stickyHeader size="medium" sx={{ minWidth: 1000 }}>
             <StyledTableHead>
@@ -557,7 +581,11 @@ const AdminMemoOrdersPage = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
-                    <Typography variant="h5" color="text.secondary" gutterBottom>
+                    <Typography
+                      variant="h5"
+                      color="text.secondary"
+                      gutterBottom
+                    >
                       😔 No orders found
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -661,6 +689,7 @@ const AdminMemoOrdersPage = () => {
                 sx={{
                   borderRadius: 3,
                   mb: 2,
+                  mt: 2,
                   overflow: "hidden",
                   boxShadow: 2,
                 }}
@@ -721,7 +750,9 @@ const AdminMemoOrdersPage = () => {
                   <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700, bgcolor: "grey.100" }}>
+                        <TableCell
+                          sx={{ fontWeight: 700, bgcolor: "grey.100" }}
+                        >
                           Product
                         </TableCell>
                         <TableCell
@@ -747,7 +778,10 @@ const AdminMemoOrdersPage = () => {
                         return (
                           <TableRow key={item._id || i} hover>
                             <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600 }}
+                              >
                                 {item.productId?.name || "Product N/A"}
                               </Typography>
                               <Chip
@@ -765,7 +799,10 @@ const AdminMemoOrdersPage = () => {
                               </Typography>
                             </TableCell>
                             <TableCell align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600 }}
+                              >
                                 ₹{priceWithoutGst.toFixed(2)}
                               </Typography>
                             </TableCell>
@@ -815,7 +852,16 @@ const AdminMemoOrdersPage = () => {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2, gap: 1, bgcolor: "grey.50" }}>
+        <DialogActions
+          sx={{
+            display: "flex",
+            px: 3,
+            py: 2,
+            gap: 1,
+            bgcolor: "grey.50",
+            flexWrap: "wrap",
+          }}
+        >
           <Button
             onClick={handleCloseOrderDetail}
             variant="outlined"
@@ -824,9 +870,7 @@ const AdminMemoOrdersPage = () => {
             Close
           </Button>
           <Button
-            onClick={() =>
-              handleStatusChange(selectedOrder._id, "Cancelled")
-            }
+            onClick={() => handleStatusChange(selectedOrder._id, "Cancelled")}
             color="error"
             variant="outlined"
             sx={{ borderRadius: 2, fontWeight: 600 }}
@@ -844,9 +888,7 @@ const AdminMemoOrdersPage = () => {
             Pending
           </Button>
           <Button
-            onClick={() =>
-              handleStatusChange(selectedOrder._id, "Completed")
-            }
+            onClick={() => handleStatusChange(selectedOrder._id, "Completed")}
             color="success"
             variant="contained"
             sx={{ borderRadius: 2, fontWeight: 600 }}
