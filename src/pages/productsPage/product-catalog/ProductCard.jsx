@@ -8,10 +8,11 @@ import {
   Box,
   Chip,
   Stack,
+  Button, // ADDED: Button import
 } from "@mui/material";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
+import EditIcon from "@mui/icons-material/Edit"; // ADDED: Edit icon import
 import { styled, alpha } from "@mui/material/styles";
-import ProductCardDetails from "../../../components/product/ProductCardDetails";
 
 const StyledCard = styled(Card)(({ theme }) => ({
   width: "320px",
@@ -66,12 +67,11 @@ const ProductCard = ({
   const isOutOfStock = totalStock === 0;
 
   const prices = product?.variants?.map((v) => v.price);
-  // const minPrice = Math.min(...prices);
-  // const maxPrice = Math.max(...prices);
-  const priceDisplay =0
-    // hasMultipleVariants && minPrice !== maxPrice
-    //   ? `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
-    //   : `₹${mainVariant ? mainVariant.price.toFixed(2) : "N/A"}`;
+  const minPrice = prices?.length ? Math.min(...prices) : 0;
+  const maxPrice = prices?.length ? Math.max(...prices) : 0;
+  const priceDisplay = hasMultipleVariants && minPrice !== maxPrice
+    ? `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
+    : `₹${mainVariant ? mainVariant.price?.toFixed(2) || "0.00" : "N/A"}`;
 
   const defaultImages = [
     "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660477/fs/Fs3_iros0a.jpg",
@@ -79,6 +79,7 @@ const ProductCard = ({
     "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660468/fs/Fs4_wnnaxc.jpg",
     "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660467/fs/Fs1_atrhyk.webp",
   ];
+  
   const getDefaultImageForProduct = (productId) => {
     if (!productId) return defaultImages[0];
 
@@ -90,46 +91,133 @@ const ProductCard = ({
     const index = Math.abs(hash) % defaultImages.length;
     return defaultImages[index];
   };
+  
   const getRandomDefaultImage = () => {
     const randomIndex = Math.floor(Math.random() * defaultImages.length);
     return defaultImages[randomIndex];
   };
+  
   const pickedImage = getDefaultImageForProduct(product._id);
-  return (
-    <>
-      <StyledCard onClick={() => navigate(`/products/${product._id}`)}>
-        <Box sx={{ position: "relative" }}>
-          <StyledCardMedia
-            component="img"
-            image={mainVariant?.imageUrl || pickedImage}
-            alt={product.productName}
-            className="product-image"
-          />
+  
+  // Handle update button click
+  const handleUpdateClick = (e) => {
+    e.stopPropagation(); // Prevent card navigation
+    navigate(`/product/update/${product._id}`);
+  };
 
-          <Box sx={{ position: "absolute", top: 12, left: 12, zIndex: 1 }}>
-            <Chip
-              icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-              label={categoryName}
+  return (
+    <StyledCard onClick={() => navigate(`/products/${product._id}`)}>
+      <Box sx={{ position: "relative" }}>
+        <StyledCardMedia
+          component="img"
+          image={mainVariant?.imageUrl || pickedImage}
+          alt={product.productName}
+          className="product-image"
+        />
+
+        <Box sx={{ position: "absolute", top: 12, left: 12, zIndex: 1 }}>
+          <Chip
+            icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
+            label={categoryName}
+            size="small"
+            sx={{
+              background: "rgba(255,255,255,0.95)",
+              backdropFilter: "blur(10px)",
+              fontWeight: 700,
+              fontSize: "0.75rem",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            }}
+          />
+        </Box>
+        
+        {isAdmin && (
+          <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
+            <Button
+              variant="contained"
               size="small"
+              startIcon={<EditIcon />}
+              onClick={handleUpdateClick}
               sx={{
                 background: "rgba(255,255,255,0.95)",
                 backdropFilter: "blur(10px)",
-                fontWeight: 700,
-                fontSize: "0.75rem",
+                color: "primary.main",
+                fontWeight: 600,
                 boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                "&:hover": {
+                  background: "rgba(255,255,255,1)",
+                }
               }}
-            />
+            >
+              Update
+            </Button>
           </Box>
-        </Box>
-        <ProductCardDetails
-          product={product}
-          isAdmin={isAdmin}
-          isAuthenticated={isAuthenticated}
-          priceDisplay={priceDisplay}
-          onAddToCart={onAddToCart}
-        />
-      </StyledCard>
-    </>
+        )}
+      </Box>
+      
+      <CardContent
+        sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}
+      >
+        {/* PRODUCT NAME */}
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{
+            fontWeight: 800,
+            mb: 1.5,
+            fontSize: "1.1rem",
+            lineHeight: 1.3,
+            color: "primary.main",
+            minHeight: 50,
+            maxHeight: 50,
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+          }}
+        >
+          {product.productName}
+        </Typography>
+
+        {/* DESCRIPTION */}
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            mb: 2,
+            lineHeight: 1.6,
+            minHeight: 44,
+            maxHeight: 44,
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+          }}
+        >
+          {product.description}
+        </Typography>
+
+        {/* PRICE - Uncomment if needed */}
+        {/* <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ mb: 2 }}
+        >
+          {!isAdmin && isAuthenticated && (
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 900,
+                color: "success.main",
+                fontSize: "1.1rem",
+              }}
+            >
+              {priceDisplay}
+            </Typography>
+          )}
+        </Stack> */}
+      </CardContent>
+    </StyledCard>
   );
 };
 

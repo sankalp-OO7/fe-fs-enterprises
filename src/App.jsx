@@ -17,7 +17,7 @@ import UserMemo from "./pages/memo/UserMemo";
 import HeroSection from "./ViewComponents/HeroSection";
 import ContactUs from "./ViewComponents/ContactUs";
 import AboutUs from "./ViewComponents/AboutUs";
-
+import ProductUpdatePage from "./pages/productsPage/update/ProductUpdatePage";
 // Protected Route Component (Keep this)
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading, isAdmin } = useAuth();
@@ -53,10 +53,10 @@ function App() {
           path="/products"
           element={
             // <ProtectedRoute>
-              <ProductsPage
-                adminOnlyy={isAdmin()}
-                isAuthenticated={isAuthenticated}
-              />
+            <ProductsPage
+              adminOnlyy={isAdmin()}
+              isAuthenticated={isAuthenticated}
+            />
             // </ProtectedRoute>
           }
         />
@@ -64,11 +64,18 @@ function App() {
           path="/products/:productId"
           element={
             // <ProtectedRoute>
-              <ProductDetailsPage
-                isAdmin={isAdmin()}
-                isAuthenticated={isAuthenticated}
-              />
-            // </ProtectedRoute>
+            <ProductDetailsPage
+              isAdmin={isAdmin()}
+              isAuthenticated={isAuthenticated}
+            />
+          }
+        />
+        <Route
+          path="/product/update/:productId"
+          element={
+            <ProtectedRoute>
+              <ProductUpdatePage />
+            </ProtectedRoute>
           }
         />
         <Route
