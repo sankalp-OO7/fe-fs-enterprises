@@ -1,6 +1,5 @@
-
-import React, { Suspense, lazy, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Container,
@@ -9,33 +8,34 @@ import {
   CircularProgress,
   Alert,
   Paper,
-  Stepper,
-  Step,
-  StepLabel,
   Button,
   Snackbar,
+  Tabs,
+  Tab,
+  Chip,
+  Avatar,
+  Stack,
 } from '@mui/material';
 import {
   ArrowBack,
   Error as ErrorIcon,
   Warning,
   CheckCircle,
+  Inventory2,
+  Category,
+  Save,
 } from '@mui/icons-material';
 
 import { 
   fetchProductWithVariants,
   updateProductAPI,
-  updateVariantAPI,
   bulkUpdateProductWithVariantsAPI,
   uploadImageAPI
 } from '../../../api/product.api';
 
-// Lazy load heavy components
-const ProductDetailsStep = lazy(() => import('../../../components/productUpdateSteps/ProductDetailsStep'));
-const VariantsManagementStep = lazy(() => import('../../../components/productUpdateSteps/VariantsManagementStep'));
-const ReviewSaveStep = lazy(() => import('../../../components/productUpdateSteps/ReviewSaveStep'));
-const StepNavigation = lazy(() => import('../../../components/productUpdateSteps/StepNavigation'));
-
+// Lazy load components
+const ProductDetailsPage = lazy(() => import('../../../components/productUpdateSteps/ProductDetailsPage'));
+const VariantsManagementPage = lazy(() => import('../../../components/productUpdateSteps/VariantsManagementPage'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -74,24 +74,21 @@ const ErrorState = ({ error, navigate }) => (
   </Container>
 );
 
-const steps = ['Product Details', 'Variants Management', 'Review & Save'];
-
 const ProductUpdatePage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   // State management
-  const [activeStep, setActiveStep] = React.useState(0);
-  const [productData, setProductData] = React.useState(null);
-  const [variants, setVariants] = React.useState([]);
-  const [snackbar, setSnackbar] = React.useState({
+  const [activeTab, setActiveTab] = useState(0);
+  const [productData, setProductData] = useState(null);
+  const [variants, setVariants] = useState([]);
+  const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'info',
   });
-  const [isDirty, setIsDirty] = React.useState(false);
-  const [imageUploading, setImageUploading] = React.useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   // React Query: Fetch product and variants
   const { 
@@ -129,26 +126,6 @@ const ProductUpdatePage = () => {
     },
   });
 
-  const updateVariantMutation = useMutation({
-    mutationFn: ({ variantId, data }) => updateVariantAPI(variantId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['product-update', productId]);
-      setSnackbar({
-        open: true,
-        message: 'Variant updated successfully!',
-        severity: 'success',
-      });
-      setIsDirty(false);
-    },
-    onError: (error) => {
-      setSnackbar({
-        open: true,
-        message: `Failed to update variant: ${error.message}`,
-        severity: 'error',
-      });
-    },
-  });
-
   const bulkUpdateMutation = useMutation({
     mutationFn: (data) => bulkUpdateProductWithVariantsAPI(productId, data),
     onSuccess: () => {
@@ -169,73 +146,69 @@ const ProductUpdatePage = () => {
     },
   });
 
- // In your ProductUpdatePage.jsx, update the handleImageUpload function:
-
-const handleImageUpload = async (file, target = 'product') => {
-  if (!file) return;
-  
-  setImageUploading(true);
-  try {
-    const formData = new FormData();
-    formData.append('image', file);
+  const handleImageUpload = async (file, target = 'product') => {
+    if (!file) return;
     
-    // Call your image upload API
-    const response = await uploadImageAPI(formData);
-    const imageUrl = response.url;
+    setImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await uploadImageAPI(formData);
+      const imageUrl = response.url;
 
-    if (target === 'product') {
-      // Update product image
-      const updatedProductData = { ...productData, imageUrl };
-      setProductData(updatedProductData);
-      
-      // Update variants that inherit from product
-      const updatedVariants = variants.map(variant => ({
-        ...variant,
-        imageUrl: !variant.hasCustomImage ? imageUrl : variant.imageUrl,
-      }));
-      setVariants(updatedVariants);
-      
+      if (target === 'product') {
+        // Update product image
+        const updatedProductData = { ...productData, imageUrl };
+        setProductData(updatedProductData);
+        
+        // Update variants that inherit from product
+        const updatedVariants = variants.map(variant => ({
+          ...variant,
+          imageUrl: !variant.hasCustomImage ? imageUrl : variant.imageUrl,
+        }));
+        setVariants(updatedVariants);
+        
+        setSnackbar({
+          open: true,
+          message: 'Product image updated! Variants using product image will be updated.',
+          severity: 'success',
+        });
+      } else {
+        // Update specific variant
+        const updatedVariants = variants.map(variant => 
+          variant.id === target 
+            ? { 
+                ...variant, 
+                imageUrl, 
+                hasCustomImage: true 
+              }
+            : variant
+        );
+        setVariants(updatedVariants);
+        
+        setSnackbar({
+          open: true,
+          message: 'Variant image updated successfully!',
+          severity: 'success',
+        });
+      }
+      setIsDirty(true);
+    } catch (error) {
       setSnackbar({
         open: true,
-        message: 'Product image updated! Variants using product image will be updated.',
-        severity: 'success',
+        message: `Image upload failed: ${error.message}`,
+        severity: 'error',
       });
-    } else {
-      // Update specific variant
-      const updatedVariants = variants.map(variant => 
-        variant.id === target 
-          ? { 
-              ...variant, 
-              imageUrl, 
-              hasCustomImage: true 
-            }
-          : variant
-      );
-      setVariants(updatedVariants);
-      
-      setSnackbar({
-        open: true,
-        message: 'Variant image updated successfully!',
-        severity: 'success',
-      });
+    } finally {
+      setImageUploading(false);
     }
-    setIsDirty(true);
-  } catch (error) {
-    setSnackbar({
-      open: true,
-      message: `Image upload failed: ${error.message}`,
-      severity: 'error',
-    });
-  } finally {
-    setImageUploading(false);
-  }
-};
+  };
 
   // Initialize form data when data is loaded
   useEffect(() => {
     if (productResponse && !productData) {
       const { productDetails, variants: fetchedVariants } = productResponse;
-      console.log('Fetched Product Details:', productDetails);
       setProductData({
         productName: productDetails.productName || '',
         description: productDetails.description || '',
@@ -300,111 +273,40 @@ const handleImageUpload = async (file, target = 'product') => {
     await updateProductMutation.mutateAsync(updateData);
   };
 
-// In your ProductUpdatePage.jsx, update the handleSaveVariant function:
+  // Save all variants and optionally product
+  const handleSaveVariants = async (includeProduct = false) => {
+    if (!variants.length) return;
 
-const handleSaveVariant = async (variantData) => {
-  if (variantData.isNew) {
-    // Handle new variant creation
-    const newVariant = {
-      ...variantData,
-      productId: productId,
-      // Remove temporary fields
-      id: undefined,
-      isNew: undefined,
-      hasCustomImage: undefined,
-    };
-    
-    // Call create variant API (you need to create this)
-    try {
-      const response = await createVariantAPI(newVariant);
-      setSnackbar({
-        open: true,
-        message: 'Variant created successfully!',
-        severity: 'success',
+    let updateData;
+    if (includeProduct) {
+      const { originalData, ...productUpdateData } = productData;
+      const variantsUpdateData = variants.map(variant => {
+        const { id, isNew, hasCustomImage, ...variantData } = variant;
+        return {
+          _id: isNew ? undefined : id,
+          ...variantData
+        };
       });
-      refetch(); // Refresh data
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: `Failed to create variant: ${error.message}`,
-        severity: 'error',
-      });
-    }
-  } else {
-    // Update existing variant
-    const { id, isNew, hasCustomImage, ...updateData } = variantData;
-    
-    // Ensure all required fields are included
-    const completeUpdateData = {
-      variantName: updateData.variantName,
-      brand: updateData.brand,
-      variantPrice: updateData.variantPrice,
-      actualPrice: updateData.actualPrice,
-      stockQty: updateData.stockQty,
-      imageUrl: updateData.imageUrl,
-      
-      // Excel fields
-      itemCode: updateData.itemCode,
-      spNo: updateData.spNo,
-      uom: updateData.uom,
-      defUom: updateData.defUom,
-      itemOnFlag: updateData.itemOnFlag,
-      rackNo: updateData.rackNo,
-      opStock: updateData.opStock,
-      hsnCode: updateData.hsnCode,
-      gst: updateData.gst,
-      stockItem: updateData.stockItem,
-      itemDisc: updateData.itemDisc,
-      mrp: updateData.mrp,
-      purRate: updateData.purRate,
-      invoiceRate: updateData.invoiceRate,
-      cashMemoRate: updateData.cashMemoRate,
-      estimateRate: updateData.estimateRate,
-      cashSalesRate: updateData.cashSalesRate,
-      agRate: updateData.agRate,
-      invDisc: updateData.invDisc,
-      cashMemoDisc: updateData.cashMemoDisc,
-      estimateDisc: updateData.estimateDisc,
-      agDisc: updateData.agDisc,
-    };
-    
-    await updateVariantMutation.mutateAsync({
-      variantId: id,
-      data: completeUpdateData
-    });
-  }
-};
-  // Save all (bulk update)
-  const handleSaveAll = async () => {
-    if (!productData || !variants.length) return;
 
-    const { originalData, ...productUpdateData } = productData;
-    
-    const variantsUpdateData = variants.map(variant => {
-      const { id, isNew, hasCustomImage, ...variantData } = variant;
-      return {
-        _id: isNew ? undefined : id,
-        ...variantData
+      updateData = {
+        product: productUpdateData,
+        variants: variantsUpdateData,
       };
-    });
+    } else {
+      const variantsUpdateData = variants.map(variant => {
+        const { id, isNew, hasCustomImage, ...variantData } = variant;
+        return {
+          _id: isNew ? undefined : id,
+          ...variantData
+        };
+      });
 
-    const bulkUpdateData = {
-      product: productUpdateData,
-      variants: variantsUpdateData,
-    };
-
-    await bulkUpdateMutation.mutateAsync(bulkUpdateData);
-  };
-
-  // Handle step change with confirmation if dirty
-  const handleStepChange = (newStep) => {
-    if (isDirty && newStep !== activeStep) {
-      const confirmed = window.confirm(
-        'You have unsaved changes. Do you want to continue without saving?'
-      );
-      if (!confirmed) return;
+      updateData = {
+        variants: variantsUpdateData,
+      };
     }
-    setActiveStep(newStep);
+
+    await bulkUpdateMutation.mutateAsync(updateData);
   };
 
   // Warn before leaving page with unsaved changes
@@ -462,6 +364,14 @@ const handleSaveVariant = async (variantData) => {
   const product = productResponse.productDetails;
   const categoryName = product.categoryId?.name || 'Uncategorized';
 
+  // Calculate totals for display
+  const totals = {
+    stock: variants.reduce((sum, v) => sum + (v.stockQty || 0), 0),
+    value: variants.reduce((sum, v) => sum + ((v.stockQty || 0) * (v.variantPrice || 0)), 0),
+    customImages: variants.filter(v => v.hasCustomImage).length,
+    active: variants.filter(v => v.itemOnFlag).length,
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
@@ -483,98 +393,120 @@ const handleSaveVariant = async (variantData) => {
           Back to Products
         </Button>
         
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-              Update Product: {product.productName}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Category: {categoryName} • {variants.length} variants
-              {isDirty && ' • Unsaved changes'}
-            </Typography>
-          </Box>
-          
-          {isDirty && (
-            <Button
-              variant="outlined"
-              color="warning"
-              size="small"
-              onClick={() => {
-                const confirmed = window.confirm(
-                  'Are you sure you want to discard all changes?'
-                );
-                if (confirmed) {
-                  setProductData(null);
-                  setVariants([]);
-                  refetch();
-                  setIsDirty(false);
-                }
-              }}
-            >
-              Discard Changes
-            </Button>
-          )}
-        </Box>
+        {/* Product Header */}
+        <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Stack direction="row" spacing={3} alignItems="center">
+            <Avatar
+              src={productData.imageUrl}
+              variant="rounded"
+              sx={{ width: 80, height: 80 }}
+            />
+            <Box flex={1}>
+              <Typography variant="h4" fontWeight="bold">
+                {product.productName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {categoryName} • ID: {productId}
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <Chip 
+                  icon={<Inventory2 />} 
+                  label={`${variants.length} Variants`} 
+                  size="small" 
+                  color="primary" 
+                  variant="outlined"
+                />
+                <Chip 
+                  label={`₹${totals.value.toFixed(0)} Value`} 
+                  size="small" 
+                  color="success" 
+                  variant="outlined"
+                />
+                <Chip 
+                  label={`${totals.stock} in Stock`} 
+                  size="small" 
+                  color="info" 
+                  variant="outlined"
+                />
+              </Stack>
+            </Box>
+            
+            {isDirty && (
+              <Button
+                variant="outlined"
+                color="warning"
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    'Are you sure you want to discard all changes?'
+                  );
+                  if (confirmed) {
+                    setProductData(null);
+                    setVariants([]);
+                    refetch();
+                    setIsDirty(false);
+                  }
+                }}
+              >
+                Discard Changes
+              </Button>
+            )}
+          </Stack>
+        </Paper>
+
+        {/* Navigation Tabs */}
+        <Paper sx={{ borderRadius: 2, mb: 4 }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={(e, newValue) => setActiveTab(newValue)}
+            variant="fullWidth"
+            sx={{
+              '& .MuiTab-root': {
+                py: 2,
+                fontSize: '1rem',
+                fontWeight: 600,
+              }
+            }}
+          >
+            <Tab 
+              icon={<Category />} 
+              iconPosition="start" 
+              label="Product Details" 
+              value={0}
+            />
+            <Tab 
+              icon={<Inventory2 />} 
+              iconPosition="start" 
+              label={`Variants (${variants.length})`}
+              value={1}
+            />
+          </Tabs>
+        </Paper>
       </Box>
 
-      {/* Stepper */}
-      <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-        <Stepper activeStep={activeStep} alternativeLabel>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-      </Paper>
-
-      {/* Step Navigation */}
-      <Suspense fallback={<CircularProgress />}>
-        <StepNavigation 
-          activeStep={activeStep}
-          steps={steps}
-          variantsCount={variants.length}
-          onStepChange={handleStepChange}
-        />
-      </Suspense>
-
-      {/* Current Step Content */}
+      {/* Tab Content */}
       <Suspense fallback={<LoadingFallback />}>
-        {activeStep === 0 && (
-          <ProductDetailsStep
+        {activeTab === 0 ? (
+          <ProductDetailsPage
             productData={productData}
             variants={variants}
             onUpdate={handleProductUpdate}
             onImageUpload={handleImageUpload}
-            imageUploading={imageUploading}
-            onNext={() => handleStepChange(1)}
             onSave={handleSaveProduct}
             isSaving={updateProductMutation.isPending}
+            isDirty={isDirty}
+            navigate={navigate}
           />
-        )}
-        
-        {activeStep === 1 && (
-          <VariantsManagementStep
+        ) : (
+          <VariantsManagementPage
             productData={productData}
             variants={variants}
             onUpdate={handleVariantsUpdate}
             onImageUpload={handleImageUpload}
-            onSaveVariant={handleSaveVariant}
-            isSavingVariant={updateVariantMutation.isPending}
-            onPrev={() => handleStepChange(0)}
-            onNext={() => handleStepChange(2)}
-          />
-        )}
-        
-        {activeStep === 2 && (
-          <ReviewSaveStep
-            productData={productData}
-            variants={variants}
-            productId={productId}
-            onPrev={() => handleStepChange(1)}
-            onSave={handleSaveAll}
+            onSave={handleSaveVariants}
             isSaving={bulkUpdateMutation.isPending}
+            isDirty={isDirty}
             navigate={navigate}
+            switchToProduct={() => setActiveTab(0)}
           />
         )}
       </Suspense>
@@ -595,18 +527,6 @@ const handleSaveVariant = async (variantData) => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-
-      {/* Footer Status */}
-      <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="caption" color="text.secondary">
-            Product ID: {productId} • Step {activeStep + 1} of {steps.length}
-          </Typography>
-          <Typography variant="caption" color={isDirty ? 'warning.main' : 'text.secondary'}>
-            {isDirty ? '⚠️ Unsaved changes' : '✅ All changes saved'}
-          </Typography>
-        </Box>
-      </Box>
     </Container>
   );
 };
