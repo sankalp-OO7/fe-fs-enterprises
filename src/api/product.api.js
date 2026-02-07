@@ -5,11 +5,10 @@ export const fetchProducts = async () => {
   return res.data.data;
 };
 
-export const fetchCategories = async () => {
-  const res = await axiosClient.get("/categories");
-  return res.data.data;
+export const createProductAPI = async (productData) => {
+  const res = await axiosClient.post("/products", productData);
+  return res.data;
 };
-
 export const fetchProductWithVariants = async (productId) => {
   const res = await axiosClient.get(`/products/${productId}/variants`);
   console.log("Product with variants API response:", res.data);
@@ -98,6 +97,90 @@ export const bulkUpdateProductWithVariantsAPI = async (productId, data) => {
     return response.data;
   } catch (error) {
     console.error('Bulk update API error:', error);
+    throw error;
+  }
+};
+
+
+
+// ===================== CATEGORY APIs =====================
+
+/**
+ * Fetch all categories
+ */
+export const fetchCategories = async (params = {}) => {
+  try {
+    const res = await axiosClient.get("/categories", { params });
+    return res.data.data;
+  } catch (error) {
+    console.error("Fetch categories error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch single category by ID
+ */
+export const fetchCategoryById = async (categoryId) => {
+  try {
+    const res = await axiosClient.get(`/categories/${categoryId}`);
+    return res.data.data;
+  } catch (error) {
+    console.error("Fetch category by ID error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Create new category
+ */
+export const createCategoryAPI = async (categoryData) => {
+  try {
+    const res = await axiosClient.post("/categories", categoryData);
+    return res.data;
+  } catch (error) {
+    console.error("Create category error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update category
+ */
+export const updateCategoryAPI = async (categoryId, categoryData) => {
+  try {
+    const res = await axiosClient.put(`/categories/${categoryId}`, categoryData);
+    return res.data;
+  } catch (error) {
+    console.error("Update category error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete category
+ */
+export const deleteCategoryAPI = async (categoryId) => {
+  try {
+    const res = await axiosClient.delete(`/categories/${categoryId}`);
+    return res.data;
+  } catch (error) {
+    console.error("Delete category error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Search categories
+ */
+export const searchCategoriesAPI = async (searchTerm) => {
+  try {
+    const res = await axiosClient.get("/categories", {
+      params: { search: searchTerm }
+    });
+    return res.data.data;
+  } catch (error) {
+    console.error("Search categories error:", error);
     throw error;
   }
 };

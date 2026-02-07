@@ -1,780 +1,516 @@
-// src/pages/ProductForm.jsx - Simple Single Page Awesome Form
-
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import useAuth from "../../context/useAuth";
-import axiosClient from "../../api/axiosClient";
+// src/pages/AddProductPage.jsx
+import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  TextField,
-  Button,
-  Typography,
   Container,
   Box,
-  Alert,
-  CircularProgress,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
+  Typography,
   Paper,
+  Grid,
+  TextField,
+  Button,
+  CircularProgress,
+  Alert,
+  Avatar,
+  InputAdornment,
   IconButton,
+  Stack,
   Divider,
-  Fade,
+  Autocomplete,
+  Snackbar,
   Card,
   CardContent,
-  Avatar,
-  Chip,
-  Stack,
-  InputAdornment,
-  Grid,
-  Dialog,
-  DialogContent,
-  LinearProgress,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import AddIcon from "@mui/icons-material/Add";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import ProductionQuantityLimitsIcon from "@mui/icons-material/ProductionQuantityLimits";
-import CategoryIcon from "@mui/icons-material/Category";
-import InventoryIcon from "@mui/icons-material/Inventory";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
-import BrandingWatermarkIcon from "@mui/icons-material/BrandingWatermark";
-import ImageIcon from "@mui/icons-material/Image";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import SaveIcon from "@mui/icons-material/Save";
-import { styled, alpha, keyframes } from "@mui/material/styles";
+} from '@mui/material';
+import {
+  Category,
+  Image as ImageIcon,
+  CloudUpload,
+  Visibility,
+  LocalOffer,
+  Save,
+  ArrowBack,
+  Add as AddIcon,
+  Info,
+} from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+import { optimizeImage, validateImage } from '../../utils/imageOptimizer';
+import { 
+  createProductAPI,
+  fetchCategories,
+  uploadImageDirectAPI
+} from '../../api/product.api';
 
-// Animations
-const float = keyframes`
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(2deg); }
-`;
-
-// Styled Components
-const GradientContainer = styled(Container)(({ theme }) => ({
-  background: `linear-gradient(135deg, ${alpha("#6366f1", 0.05)} 0%, ${alpha(
-    "#8b5cf6",
-    0.05
-  )} 100%)`,
-  borderRadius: "24px",
-  padding: theme.spacing(4),
-  position: "relative",
-  overflow: "hidden",
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: `radial-gradient(circle at 20% 30%, ${alpha(
-      "#6366f1",
-      0.1
-    )} 0%, transparent 50%), 
-                     radial-gradient(circle at 80% 70%, ${alpha(
-                       "#8b5cf6",
-                       0.1
-                     )} 0%, transparent 50%)`,
-    pointerEvents: "none",
-  },
-}));
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  borderRadius: "20px",
-  background: `linear-gradient(145deg, ${alpha("#ffffff", 0.9)}, ${alpha(
-    "#f8fafc",
-    0.9
-  )})`,
-  backdropFilter: "blur(20px)",
-  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  boxShadow: `0 20px 40px ${alpha("#000000", 0.1)}, 0 0 0 1px ${alpha(
-    "#ffffff",
-    0.5
-  )} inset`,
-  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-  "&:hover": {
-    transform: "translateY(-2px)",
-    boxShadow: `0 25px 50px ${alpha("#000000", 0.15)}`,
-  },
-}));
-
-const AnimatedCard = styled(Card)(({ theme }) => ({
-  borderRadius: "16px",
-  background: `linear-gradient(145deg, ${alpha("#ffffff", 0.95)}, ${alpha(
-    "#f1f5f9",
-    0.95
-  )})`,
-  border: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-  transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-  position: "relative",
-  overflow: "hidden",
-  marginBottom: theme.spacing(3),
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: "-100%",
-    width: "100%",
-    height: "100%",
-    background: `linear-gradient(90deg, transparent, ${alpha(
-      "#6366f1",
-      0.1
-    )}, transparent)`,
-    transition: "left 0.5s ease",
-  },
-  "&:hover": {
-    transform: "translateY(-4px) scale(1.01)",
-    borderColor: theme.palette.primary.main,
-    boxShadow: `0 20px 40px ${alpha(theme.palette.primary.main, 0.2)}`,
-    "&::before": {
-      left: "100%",
-    },
-  },
-}));
-
-const StyledTextField = styled(TextField)(({ theme }) => ({
-  "& .MuiOutlinedInput-root": {
-    borderRadius: "12px",
-    background: `linear-gradient(145deg, ${alpha("#ffffff", 0.8)}, ${alpha(
-      "#f8fafc",
-      0.8
-    )})`,
-    transition: "all 0.3s ease",
-    "&:hover": {
-      "& > fieldset": {
-        borderColor: theme.palette.primary.main,
-        borderWidth: "2px",
-      },
-    },
-    "&.Mui-focused": {
-      transform: "scale(1.02)",
-      "& > fieldset": {
-        borderColor: theme.palette.primary.main,
-        borderWidth: "2px",
-        boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.2)}`,
-      },
-    },
-  },
-  "& .MuiInputLabel-root": {
-    fontWeight: 600,
-  },
-}));
-
-const GradientButton = styled(Button)(({ theme }) => ({
-  borderRadius: "12px",
-  padding: "12px 32px",
-  fontWeight: 700,
-  fontSize: "1rem",
-  textTransform: "none",
-  position: "relative",
-  overflow: "hidden",
-  background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
-  color: "white",
-  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: "-100%",
-    width: "100%",
-    height: "100%",
-    background:
-      "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-    transition: "left 0.5s ease",
-  },
-  "&:hover": {
-    transform: "translateY(-2px)",
-    boxShadow: `0 15px 30px ${alpha(theme.palette.primary.main, 0.4)}`,
-    "&::before": {
-      left: "100%",
-    },
-  },
-  "&:active": {
-    transform: "translateY(0)",
-  },
-}));
-
-const AddVariantButton = styled(GradientButton)(({ theme }) => ({
-  width: "100%",
-  padding: "16px 32px",
-  fontSize: "1.1rem",
-  marginTop: theme.spacing(2),
-  marginBottom: theme.spacing(2),
-  background: `linear-gradient(45deg, ${theme.palette.success.main} 30%, ${theme.palette.success.dark} 90%)`,
-  "&:hover": {
-    boxShadow: `0 15px 30px ${alpha(theme.palette.success.main, 0.4)}`,
-  },
-}));
-
-const VariantAvatar = styled(Avatar)(({ theme }) => ({
-  width: 48,
-  height: 48,
-  background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-  animation: `${float} 3s ease-in-out infinite`,
-  boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.3)}`,
-}));
-
-// Helper function to create unique IDs for variants
-const generateUniqueId = () =>
-  `variant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-const initialVariantState = () => ({
-  id: generateUniqueId(),
-  name: "",
-  brand: "",
-  price: "",
-  stockQty: "",
-  imageUrl: "",
+const VisuallyHiddenInput = styled('input')({
+  clip: 'rect(0 0 0 0)',
+  clipPath: 'inset(50%)',
+  height: 1,
+  overflow: 'hidden',
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  whiteSpace: 'nowrap',
+  width: 1,
 });
 
-const initialProductState = {
-  name: "",
-  description: "",
-  categoryId: "",
-  variants: [initialVariantState()],
-};
-
-const ProductForm = () => {
-  const { isAdmin, logout, isAuthenticated } = useAuth();
+const AddProductPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
+  // State for product data
+  const [productData, setProductData] = useState({
+    productName: '',
+    description: '',
+    categoryId: '',
+    categoryName: '',
+    imageUrl: '',
+  });
 
-  const [product, setProduct] = useState(initialProductState);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [submitSuccess, setSubmitSuccess] = useState(false);
+  // UI States
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageDialog, setImageDialog] = useState({
+    open: false,
+    currentImage: '',
+  });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'info',
+  });
 
-  // Protection and Data Fetching
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/admin/login");
-    } else if (!isAdmin()) {
-      logout();
-      navigate("/admin/login");
-    } else {
-      fetchCategories();
-    }
-  }, [isAuthenticated, isAdmin, navigate, logout]);
+  // Fetch categories
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  });
 
-  const fetchCategories = async () => {
-    setCategoriesLoading(true);
-    try {
-      const response = await axiosClient.get("/categories");
-      setCategories(response.data);
-    } catch (err) {
-      setError(
-        "Failed to load categories. Cannot create product without them."
-      );
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
-
-  // Fixed handlers with proper state isolation
-  const handleProductChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setProduct((prev) => ({ ...prev, [name]: value }));
-  }, []);
-
-  const handleVariantChange = useCallback((variantId, field, value) => {
-    setProduct((prev) => ({
-      ...prev,
-      variants: prev.variants.map((variant) =>
-        variant.id === variantId ? { ...variant, [field]: value } : variant
-      ),
-    }));
-  }, []);
-
-  const handleAddVariant = useCallback(() => {
-    setProduct((prev) => ({
-      ...prev,
-      variants: [...prev.variants, initialVariantState()],
-    }));
-  }, []);
-
-  const handleRemoveVariant = useCallback((variantId) => {
-    setProduct((prev) => ({
-      ...prev,
-      variants: prev.variants.filter((variant) => variant.id !== variantId),
-    }));
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    const { variants, ...baseProduct } = product;
-
-    // Basic validation
-    if (variants.length === 0 || !baseProduct.categoryId) {
-      setError(
-        "Product must have at least one variant and a selected category."
-      );
-      setLoading(false);
-      return;
-    }
-
-    const payload = {
-      ...baseProduct,
-      variants: variants
-        .map(({ id, ...v }) => ({
-          ...v,
-          price: parseFloat(v.price),
-          stockQty: parseInt(v.stockQty),
-        }))
-        .filter(
-          (v) =>
-            v.name && v.brand && v.price && v.stockQty != null && v.imageUrl
-        ),
-    };
-
-    if (payload.variants.length === 0) {
-      setError("At least one variant must be completely filled out.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await axiosClient.post("/products", payload);
-      setSubmitSuccess(true);
+  // Create product mutation
+  const createProductMutation = useMutation({
+    mutationFn: (data) => createProductAPI(data),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries(['products']);
+      setSnackbar({
+        open: true,
+        message: `Product "${productData.productName}" created successfully!`,
+        severity: 'success',
+      });
+      
+      // Navigate to the newly created product's edit page
       setTimeout(() => {
-        setProduct({
-          name: "",
-          description: "",
-          categoryId: "",
-          variants: [initialVariantState()],
-        });
-        setSubmitSuccess(false);
-        setError(`Product "${response.data.name}" created successfully!`);
-        setTimeout(() => setError(""), 5000);
-      }, 2000);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to create product.");
+        navigate(`/products`);
+      }, 1500);
+    },
+    onError: (error) => {
+      setSnackbar({
+        open: true,
+        message: `Failed to create product: ${error.message}`,
+        severity: 'error',
+      });
+    },
+  });
+
+  // Handle form field changes
+  const handleChange = useCallback((field, value) => {
+    setProductData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  // Handle category selection
+  const handleCategoryChange = useCallback((event, newValue) => {
+    setProductData(prev => ({
+      ...prev,
+      categoryId: newValue ? newValue._id : '',
+      categoryName: newValue ? newValue.name : '',
+    }));
+  }, []);
+
+  // Handle image upload
+  const handleImageUpload = useCallback(async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setImageUploading(true);
+    try {
+      // Validate image
+      const validation = validateImage(file);
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(', '));
+      }
+
+      // Optimize image
+      const optimizedFile = await optimizeImage(file);
+      
+      // Create FormData for upload
+      const formData = new FormData();
+      formData.append('image', optimizedFile);
+      formData.append('folder', 'products/main');
+
+      // Upload image
+      const response = await uploadImageDirectAPI(formData);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Upload failed');
+      }
+
+      // Update product data with new image URL
+      setProductData(prev => ({ 
+        ...prev, 
+        imageUrl: response.data.url 
+      }));
+
+      setSnackbar({
+        open: true,
+        message: 'Product image uploaded successfully!',
+        severity: 'success',
+      });
+
+    } catch (error) {
+      console.error('Image upload error:', error);
+      setSnackbar({
+        open: true,
+        message: `Image upload failed: ${error.message}`,
+        severity: 'error',
+      });
     } finally {
-      setLoading(false);
+      setImageUploading(false);
     }
-  };
+  }, []);
 
-  if (categoriesLoading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          mt: 8,
-        }}
-      >
-        <CircularProgress size={60} thickness={4} />
-        <Typography variant="h6" sx={{ mt: 2, fontWeight: 600 }}>
-          Loading Categories...
-        </Typography>
-      </Box>
-    );
-  }
+  // Handle form submission
+  const handleSubmit = useCallback(async (e) => {
+    if (e) e.preventDefault();
+    
+    // Validate form
+    if (!productData.productName.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Product name is required',
+        severity: 'error',
+      });
+      return;
+    }
 
-  if (categories.length === 0 && !categoriesLoading) {
-    return (
-      <GradientContainer maxWidth="md" sx={{ mt: 5 }}>
-        <Alert
-          severity="error"
-          sx={{
-            borderRadius: "16px",
-            fontSize: "1.1rem",
-            "& .MuiAlert-icon": { fontSize: "2rem" },
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            No Categories Found
-          </Typography>
-          Please create categories first using the Category Management page.
-        </Alert>
-      </GradientContainer>
-    );
-  }
+    if (!productData.categoryId) {
+      setSnackbar({
+        open: true,
+        message: 'Please select a category',
+        severity: 'error',
+      });
+      return;
+    }
 
-  // Success Dialog
-  const SuccessDialog = () => (
-    <Dialog open={submitSuccess} maxWidth="sm" fullWidth>
-      <DialogContent sx={{ textAlign: "center", py: 4 }}>
-        <CheckCircleIcon sx={{ fontSize: 80, color: "success.main", mb: 2 }} />
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-          Product Created Successfully! 🎉
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Your product has been added to the catalog.
-        </Typography>
-        <LinearProgress sx={{ mt: 3, borderRadius: "4px" }} />
-      </DialogContent>
-    </Dialog>
-  );
+    // Create product
+    await createProductMutation.mutateAsync(productData);
+  }, [productData, createProductMutation]);
+
+  // Find selected category
+  const selectedCategory = categories.find(cat => cat._id === productData.categoryId) || null;
+
+  const isSubmitting = createProductMutation.isPending;
 
   return (
-    <GradientContainer component="main" maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ position: "relative", zIndex: 1 }}>
-        {/* Header */}
-        <Box sx={{ textAlign: "center", mb: 4 }}>
-          <Typography
-            variant="h3"
-            component="h1"
-            sx={{ fontWeight: 900, mb: 1 }}
-          >
-            Create New Product ✨
-          </Typography>
-          <Typography variant="h6" color="text.secondary">
-            Add amazing products to your catalog
-          </Typography>
-        </Box>
-
-        {/* Error/Success Alert */}
-        {error && (
-          <Alert
-            severity={error.includes("successfully") ? "success" : "error"}
-            sx={{ mb: 3, borderRadius: "12px", fontSize: "1rem" }}
-          >
-            {error}
-          </Alert>
-        )}
-
-        {/* Form */}
-        <Box component="form" onSubmit={handleSubmit}>
-          {/* Product Information Section */}
-          <StyledPaper sx={{ p: 4, mb: 4 }}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-              <ProductionQuantityLimitsIcon
-                sx={{ fontSize: 40, color: "primary.main", mr: 2 }}
-              />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                Product Information
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Paper sx={{ p: 3, borderRadius: 2 }}>
+          <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+            <Box>
+              <Button
+                startIcon={<ArrowBack />}
+                onClick={() => navigate(-1)}
+                variant="outlined"
+                sx={{ mb: 2 }}
+              >
+                Back
+              </Button>
+              <Typography variant="h4" fontWeight="bold">
+                Add New Product
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Fill in the details to create a new product
               </Typography>
             </Box>
+          </Stack>
+        </Paper>
+      </Box>
 
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <StyledTextField
-                  label="Product Name"
-                  name="name"
-                  value={product.name}
-                  onChange={handleProductChange}
-                  fullWidth
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <ProductionQuantityLimitsIcon color="primary" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+      {/* Messages */}
+      {snackbar.open && (
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert
+            severity={snackbar.severity}
+            onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+            sx={{ width: '100%', borderRadius: 2 }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      )}
 
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required sx={{ minWidth: 280 }}>
-                  <InputLabel
-                    id="category-label"
-                    sx={{ fontSize: "1.1rem", fontWeight: 600 }}
-                  >
-                    Product Category
-                  </InputLabel>
-                  <Select
+      {/* Product Form */}
+      <Paper sx={{ p: 4, borderRadius: 2 }}>
+        <form onSubmit={handleSubmit}>
+          <Grid container spacing={4}>
+            {/* Left Column - Product Details */}
+            <Grid item xs={12} md={8}>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                <LocalOffer /> Product Information
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
                     fullWidth
-                    labelId="category-label"
-                    name="categoryId"
-                    value={product.categoryId}
-                    label="Product Category"
-                    onChange={handleProductChange}
-                    sx={{
-                      borderRadius: "12px",
-                      background: `linear-gradient(145deg, ${alpha(
-                        "#ffffff",
-                        0.8
-                      )}, ${alpha("#f8fafc", 0.8)})`,
-                      "& .MuiSelect-select": {
-                        padding: "16.5px 14px",
-                        fontSize: "1rem",
-                      },
-                      "& .MuiOutlinedInput-root": {
-                        "&:hover": {
-                          "& > fieldset": {
-                            borderColor: "primary.main",
-                            borderWidth: "2px",
-                          },
-                        },
-                        "&.Mui-focused": {
-                          transform: "scale(1.02)",
-                          "& > fieldset": {
-                            borderColor: "primary.main",
-                            borderWidth: "2px",
-                            boxShadow: `0 0 20px ${alpha("#1976d2", 0.2)}`,
-                          },
-                        },
-                      },
+                    label="Product Name *"
+                    value={productData.productName}
+                    onChange={(e) => handleChange('productName', e.target.value)}
+                    required
+                    disabled={isSubmitting}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LocalOffer fontSize="small" />
+                        </InputAdornment>
+                      ),
                     }}
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <CategoryIcon color="primary" />
-                      </InputAdornment>
-                    }
-                    MenuProps={{
-                      PaperProps: {
-                        sx: {
-                          borderRadius: "12px",
-                          mt: 1,
-                          "& .MuiMenuItem-root": {
-                            fontSize: "1.1rem", // ✅ bigger text
-                            fontWeight: 500,
-                            padding: "14px 20px", // ✅ bigger clickable area
-                            borderRadius: "8px",
-                            margin: "4px 8px",
-                            "&:hover": {
-                              background: alpha("#1976d2", 0.1),
-                            },
-                          },
-                        },
-                      },
-                    }}
-                  >
-                    <MenuItem value="" sx={{ fontStyle: "italic" }}>
-                      -- Select a Category --
-                    </MenuItem>
-                    {categories.map((cat) => (
-                      <MenuItem key={cat._id} value={cat._id}>
-                        {cat.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+                    helperText="Enter a descriptive name for your product"
+                    error={!productData.productName.trim() && productData.productName !== ''}
+                  />
+                </Grid>
 
-              <Grid item xs={12}>
-                <StyledTextField
-                  label="Product Description"
-                  name="description"
-                  value={product.description}
-                  onChange={handleProductChange}
-                  fullWidth
-                  required
-                  multiline
-                  rows={4}
-                  placeholder="Describe your product in detail..."
-                />
+                <Grid item xs={12}>
+                  <Autocomplete
+                    options={categories}
+                    getOptionLabel={(option) => option.name}
+                    value={selectedCategory}
+                    onChange={handleCategoryChange}
+                    loading={categoriesLoading}
+                    disabled={isSubmitting}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Category *"
+                        required
+                        helperText="Select a category for your product"
+                        error={!productData.categoryId && productData.categoryId !== ''}
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: (
+                            <>
+                              <InputAdornment position="start">
+                                <Category fontSize="small" />
+                              </InputAdornment>
+                              {params.InputProps.startAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option._id === value._id}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Product Description"
+                    value={productData.description}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    multiline
+                    rows={4}
+                    disabled={isSubmitting}
+                    helperText="Describe your product in detail (optional)"
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Image URL"
+                    value={productData.imageUrl}
+                    onChange={(e) => handleChange('imageUrl', e.target.value)}
+                    disabled={isSubmitting}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <ImageIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: productData.imageUrl && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={() => setImageDialog({
+                              open: true,
+                              currentImage: productData.imageUrl,
+                            })}
+                          >
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    helperText="Or paste an image URL directly"
+                  />
+                </Grid>
               </Grid>
             </Grid>
-          </StyledPaper>
 
-          {/* Product Variants Section */}
-          <StyledPaper sx={{ p: 4, mb: 4 }}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-              <InventoryIcon
-                sx={{ fontSize: 40, color: "primary.main", mr: 2 }}
-              />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                Product Variants ({product.variants.length})
-              </Typography>
-            </Box>
-
-            {product.variants.map((variant, index) => (
-              <Fade in timeout={300 + index * 100} key={variant.id}>
-                <AnimatedCard>
-                  <CardContent sx={{ p: 3 }}>
-                    <Box
+            {/* Right Column - Image Upload */}
+            <Grid item xs={12} md={4}>
+              <Card sx={{ borderRadius: 2, height: '100%' }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                    <ImageIcon /> Product Image
+                  </Typography>
+                  
+                  <Box sx={{ textAlign: 'center', mb: 3 }}>
+                    <Avatar
+                      src={productData.imageUrl || '/placeholder-image.jpg'}
+                      variant="rounded"
                       sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
+                        width: 200,
+                        height: 200,
+                        mx: 'auto',
                         mb: 3,
+                        border: '2px solid',
+                        borderColor: productData.imageUrl ? 'primary.main' : 'grey.300',
+                        borderRadius: 2,
                       }}
                     >
-                      <Stack direction="row" alignItems="center" spacing={2}>
-                        <VariantAvatar>
-                          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                            {index + 1}
-                          </Typography>
-                        </VariantAvatar>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                          Variant #{index + 1}
-                        </Typography>
-                      </Stack>
-
-                      {product.variants.length > 1 && (
-                        <IconButton
-                          color="error"
-                          onClick={() => handleRemoveVariant(variant.id)}
-                          sx={{
-                            background: alpha("#ef4444", 0.1),
-                            "&:hover": {
-                              background: alpha("#ef4444", 0.2),
-                              transform: "scale(1.1)",
-                            },
-                          }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
+                      {!productData.imageUrl && (
+                        <ImageIcon sx={{ fontSize: 60, color: 'grey.400' }} />
                       )}
-                    </Box>
-
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} sm={6}>
-                        <StyledTextField
-                          label="Variant Name"
-                          value={variant.name}
-                          onChange={(e) =>
-                            handleVariantChange(
-                              variant.id,
-                              "name",
-                              e.target.value
-                            )
-                          }
-                          fullWidth
-                          required
-                          placeholder="e.g., Red - Large"
+                    </Avatar>
+                    
+                    <Stack spacing={2}>
+                      <Button
+                        component="label"
+                        variant="contained"
+                        fullWidth
+                        startIcon={imageUploading ? <CircularProgress size={20} /> : <CloudUpload />}
+                        disabled={imageUploading || isSubmitting}
+                      >
+                        Upload Image
+                        <VisuallyHiddenInput
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
                         />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6}>
-                        <StyledTextField
-                          label="Brand"
-                          value={variant.brand}
-                          onChange={(e) =>
-                            handleVariantChange(
-                              variant.id,
-                              "brand",
-                              e.target.value
-                            )
-                          }
+                      </Button>
+                      
+                      {productData.imageUrl && (
+                        <Button
+                          variant="outlined"
                           fullWidth
-                          required
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <BrandingWatermarkIcon color="primary" />
-                              </InputAdornment>
-                            ),
-                          }}
-                        />
-                      </Grid>
+                          startIcon={<Visibility />}
+                          onClick={() => setImageDialog({
+                            open: true,
+                            currentImage: productData.imageUrl,
+                          })}
+                          disabled={isSubmitting}
+                        >
+                          Preview
+                        </Button>
+                      )}
+                    </Stack>
+                  </Box>
 
-                      <Grid item xs={12} sm={6}>
-                        <StyledTextField
-                          label="Price (₹)"
-                          type="number"
-                          value={variant.price}
-                          onChange={(e) =>
-                            handleVariantChange(
-                              variant.id,
-                              "price",
-                              e.target.value
-                            )
-                          }
-                          fullWidth
-                          required
-                          inputProps={{ min: 0.01, step: 0.01 }}
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <AttachMoneyIcon color="primary" />
-                              </InputAdornment>
-                            ),
-                          }}
-                        />
-                      </Grid>
+                  {/* Image Guidelines */}
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'info.50' }}>
+                    <Typography variant="subtitle2" gutterBottom color="info.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Info fontSize="small" /> Image Guidelines
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" component="div">
+                      <Box component="ul" sx={{ pl: 2, m: 0 }}>
+                        <li>Use high-quality images</li>
+                        <li>Formats: JPG, PNG, WebP</li>
+                        <li>Max size: 20MB</li>
+                        <li>Images auto-optimized</li>
+                      </Box>
+                    </Typography>
+                  </Paper>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
 
-                      <Grid item xs={12} sm={6}>
-                        <StyledTextField
-                          label="Stock Quantity"
-                          type="number"
-                          value={variant.stockQty}
-                          onChange={(e) =>
-                            handleVariantChange(
-                              variant.id,
-                              "stockQty",
-                              e.target.value
-                            )
-                          }
-                          fullWidth
-                          required
-                          inputProps={{ min: 0 }}
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <InventoryIcon color="primary" />
-                              </InputAdornment>
-                            ),
-                          }}
-                        />
-                      </Grid>
+          <Divider sx={{ my: 4 }} />
 
-                      <Grid item xs={12}>
-                        <StyledTextField
-                          label="Image URL"
-                          type="url"
-                          value={variant.imageUrl}
-                          onChange={(e) =>
-                            handleVariantChange(
-                              variant.id,
-                              "imageUrl",
-                              e.target.value
-                            )
-                          }
-                          fullWidth
-                          required
-                          placeholder="https://example.com/image.jpg"
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <ImageIcon color="primary" />
-                              </InputAdornment>
-                            ),
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </AnimatedCard>
-              </Fade>
-            ))}
-
-            {/* Add Variant Button - Always at the bottom */}
-            <AddVariantButton
-              startIcon={<AddIcon />}
-              onClick={handleAddVariant}
+          {/* Action Buttons */}
+          <Stack direction="row" spacing={2} justifyContent="flex-end">
+            <Button
+              onClick={() => navigate(-1)}
+              variant="outlined"
+              disabled={isSubmitting}
             >
-              Add Another Variant
-            </AddVariantButton>
-          </StyledPaper>
-
-          {/* Submit Button */}
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-            <GradientButton
+              Cancel
+            </Button>
+            
+            <Button
               type="submit"
-              disabled={
-                loading ||
-                !product.name ||
-                !product.description ||
-                !product.categoryId ||
-                product.variants.length === 0
-              }
-              startIcon={
-                loading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  <SaveIcon />
-                )
-              }
+              variant="contained"
+              color="success"
+              startIcon={isSubmitting ? <CircularProgress size={20} /> : <AddIcon />}
+              disabled={isSubmitting || !productData.productName.trim() || !productData.categoryId}
               size="large"
-              sx={{ px: 6, py: 2, fontSize: "1.2rem" }}
             >
-              {loading ? "Creating Product..." : "Create Product"}
-            </GradientButton>
+              {isSubmitting ? 'Creating...' : 'Create Product'}
+            </Button>
+          </Stack>
+        </form>
+      </Paper>
+
+      {/* Image Preview Dialog */}
+      {imageDialog.open && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1300,
+          }}
+          onClick={() => setImageDialog({ open: false, currentImage: '' })}
+        >
+          <Box sx={{ maxWidth: '90%', maxHeight: '90%', position: 'relative' }}>
+            <img
+              src={imageDialog.currentImage}
+              alt="Preview"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '90vh',
+                objectFit: 'contain',
+                borderRadius: 8,
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                position: 'absolute',
+                bottom: -40,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                color: 'white',
+                opacity: 0.7,
+              }}
+            >
+              Click anywhere to close
+            </Typography>
           </Box>
         </Box>
-
-        <SuccessDialog />
-      </Box>
-    </GradientContainer>
+      )}
+    </Container>
   );
 };
 
-export default ProductForm;
+export default AddProductPage;

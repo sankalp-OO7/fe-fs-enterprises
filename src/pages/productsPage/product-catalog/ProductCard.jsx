@@ -55,7 +55,7 @@ const ProductCard = ({
   onAddSingleVariant,
 }) => {
   const navigate = useNavigate();
-
+console.log("Rendering ProductCard for:", product);
   const categoryName =
     product.categoryId?.name ||
     categories.find((c) => c._id === product.categoryId)?.name ||
@@ -97,7 +97,7 @@ const ProductCard = ({
     return defaultImages[randomIndex];
   };
   
-  const pickedImage = getDefaultImageForProduct(product._id);
+  const pickedImage = product.imageUrl === "https://example.com/default-product.jpg" ? getDefaultImageForProduct(product._id) : product.imageUrl || getRandomDefaultImage();
   
   // Handle update button click
   const handleUpdateClick = (e) => {

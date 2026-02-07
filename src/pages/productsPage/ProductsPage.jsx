@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Box, Button, Container, Typography } from "@mui/material";
 import CategoryPage from "./CategoryPage";
 import ProductView from "./ProductView";
-import ProductManagement from "./ProductManagement";
 import AddProduct from "./AddProduct";
 
 const ProductPage = ({ adminOnlyy, isAuthenticated }) => {
@@ -18,8 +17,6 @@ const ProductPage = ({ adminOnlyy, isAuthenticated }) => {
         return (
           <ProductView isAdmin={adminOnlyy} isAuthenticated={isAuthenticated} />
         );
-      case "management":
-        return <ProductManagement />;
       case "addProduct":
         return <AddProduct />;
       default:
@@ -46,21 +43,14 @@ const ProductPage = ({ adminOnlyy, isAuthenticated }) => {
               variant={activePage === "category" ? "contained" : "outlined"}
               onClick={() => setActivePage("category")}
             >
-              Category Page
+              Category add and update 
             </Button>
 
             <Button
               variant={activePage === "products" ? "contained" : "outlined"}
               onClick={() => setActivePage("products")}
             >
-              Products Page
-            </Button>
-
-            <Button
-              variant={activePage === "management" ? "contained" : "outlined"}
-              onClick={() => setActivePage("management")}
-            >
-              Product Management
+              Products and Variants Page
             </Button>
 
             <Button

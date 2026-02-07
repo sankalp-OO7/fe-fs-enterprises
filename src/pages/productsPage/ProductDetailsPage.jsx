@@ -107,7 +107,7 @@ const ProductDetailsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const {
-    data: product = { productDetails: {}, variants: [], priceRange: "" },
+    data: product = { productDetails: {}, variants: [], priceRange: "",imageUrl: "" },
     isLoading,
     isError,
   } = useQuery({
@@ -115,7 +115,7 @@ const ProductDetailsPage = () => {
     queryFn: () => fetchProductWithVariants(productId),
     enabled: !!productId,
   });
-
+console.log("Fetched product data:", product);
   useEffect(() => {
     setCurrentPage(1);
   }, [variantSearchTerm, selectedBrandCategory]);
@@ -227,10 +227,8 @@ const ProductDetailsPage = () => {
     );
   }
 
-  const pickedImage = product.variants?.[0]?.imageUrl
-    ? product.variants[0].imageUrl
-    : getDefaultImageForProduct(product._id);
-
+  const pickedImage =  selectedVariant?.imageUrl || product.productDetails.imageUrl === "https://example.com/default-product.jpg" ? getDefaultImageForProduct(product._id) : product.productDetails.imageUrl || getRandomDefaultImage();
+console.log("Picked image URL:", pickedImage);
   const categoryName =
     product.categoryId?.name || product.categoryId?.label || "Uncategorized";
 
@@ -564,10 +562,7 @@ const ProductDetailsPage = () => {
                           <Box sx={{ position: "relative" }}>
                             <CardMedia
                               component="img"
-                              image={
-                                variant.imageUrl ||
-                                getDefaultImageForProduct(product._id)
-                              }
+                              image={pickedImage}
                               alt={variant.name}
                               sx={{
                                 height: 180,
@@ -765,10 +760,7 @@ const ProductDetailsPage = () => {
                                 }}
                               >
                                 <Avatar
-                                  src={
-                                    variant.imageUrl ||
-                                    getDefaultImageForProduct(product._id)
-                                  }
+                                  src={pickedImage}
                                   alt={variant.variantName}
                                   sx={{
                                     width: 60,
