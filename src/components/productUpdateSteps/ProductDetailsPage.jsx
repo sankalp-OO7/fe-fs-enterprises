@@ -53,13 +53,14 @@ const ProductDetailsPage = memo(({
   onSave, 
   isSaving,
   isDirty,
-  navigate
+  navigate,
+   imageUploading 
 }) => {
+  console.log("productData in ProductDetailsPage:", productData);
   const [imageDialog, setImageDialog] = useState({
     open: false,
     currentImage: '',
   });
-  const [imageUploading, setImageUploading] = useState(false);
 
   // Fetch categories using React Query
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
@@ -85,9 +86,8 @@ const ProductDetailsPage = memo(({
   const handleFileUpload = useCallback(async (event) => {
     const file = event.target.files[0];
     if (file && onImageUpload) {
-      setImageUploading(true);
+      // Only call the parent's function, parent handles loading state
       await onImageUpload(file, 'product');
-      setImageUploading(false);
     }
   }, [onImageUpload]);
 
