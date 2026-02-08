@@ -75,10 +75,9 @@ const VariantsTable = memo(({
     );
   }, []);
 
-  const handleRemoveVariant = useCallback((variantId) => {
-    const updatedVariants = variants.filter(v => v.id !== variantId);
-    onRemoveVariant(updatedVariants);
-  }, [variants, onRemoveVariant]);
+const handleRemoveVariant = useCallback((variantId) => {
+  onRemoveVariant(variantId);
+}, [onRemoveVariant]);
 
   const handleVariantChange = useCallback((variantId, field, value) => {
     const updatedVariants = variants.map(variant => 
@@ -178,7 +177,7 @@ const VariantsTable = memo(({
                 onImagePreview={() => onImagePreview(variant.imageUrl || productData.imageUrl)}
                 onEdit={() => onOpenVariantForm(variant)}
                 onDuplicate={() => handleDuplicateVariant(variant)}
-                onRemove={() => handleRemoveVariant(variant.id)}
+               onRemove={() => handleRemoveVariant(variant.id)}
                 onFileUpload={(e) => handleFileUpload(e, variant.id)}
                 onResetImage={() => handleResetVariantImage(variant.id)}
                 imageUploading={imageUploading}

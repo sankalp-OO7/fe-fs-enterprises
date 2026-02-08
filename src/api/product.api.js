@@ -93,14 +93,52 @@ export const uploadImageDirectAPI = async (formData) => {
 // Bulk update product and variants
 export const bulkUpdateProductWithVariantsAPI = async (productId, data) => {
   try {
-    const response = await axiosClient.put(`/products/${productId}/bulk-update`, data);
+    console.log('Bulk update API called:', { 
+      productId, 
+      variantCount: data.variants?.length || 0,
+      deleteCount: data.variantsToDelete?.length || 0,
+      hasProductUpdate: !!data.product 
+    });
+    
+    // Clean up variant data before sending
+    const cleanedData = { ...data };
+    
+    if (cleanedData.variants) {
+      cleanedData.variants = cleanedData.variants.map(variant => {
+        const { id, isNew, hasCustomImage, ...rest } = variant;
+        
+        // Only include _id if it's a valid MongoDB ObjectId (24 hex chars)
+        const isValidObjectId = id && /^[0-9a-fA-F]{24}$/.test(id);
+        
+        return {
+          ...rest,
+          // Only send _id for existing variants with valid ObjectId
+          ...(isValidObjectId ? { _id: id } : {})
+        };
+      });
+    }
+    
+    console.log('Cleaned data for bulk update:', cleanedData);
+    
+    const response = await axiosClient.put(`/products/${productId}/bulk-update`, cleanedData, {
+      timeout: 30000,
+    });
+    
     return response.data;
+    
   } catch (error) {
     console.error('Bulk update API error:', error);
-    throw error;
+    
+    let errorMessage = 'Bulk update failed';
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw new Error(errorMessage);
   }
 };
-
 
 
 // ===================== CATEGORY APIs =====================

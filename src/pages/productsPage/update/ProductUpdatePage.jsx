@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState,useCallback } from 'react';
 import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -83,6 +83,7 @@ const ProductUpdatePage = () => {
   // State management
   const [activeTab, setActiveTab] = useState(0);
   const [productData, setProductData] = useState(null);
+   const [deletedVariants, setDeletedVariants] = useState([]);
   const [variants, setVariants] = useState([]);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -244,65 +245,100 @@ const handleImageUpload = async (file, target = 'product') => {
   }
 };
   // Initialize form data when data is loaded
-  useEffect(() => {
-    if (productResponse && !productData) {
-      const { productDetails, variants: fetchedVariants } = productResponse;
-      setProductData({
-        productName: productDetails.productName || '',
-        description: productDetails.description || '',
-        categoryId: productDetails.categoryId?._id || productDetails.categoryId || '',
-        imageUrl: productDetails.imageUrl || '',
-        originalData: productDetails,
-      });
+useEffect(() => {
+  if (productResponse && !productData) {
+    const { productDetails, variants: fetchedVariants } = productResponse;
+    
+    setProductData({
+      productName: productDetails.productName || '',
+      description: productDetails.description || '',
+      categoryId: productDetails.categoryId?._id || productDetails.categoryId || '',
+      imageUrl: productDetails.imageUrl || '',
+      originalData: productDetails,
+    });
 
-      if (fetchedVariants && Array.isArray(fetchedVariants)) {
-        const processedVariants = fetchedVariants.map(variant => ({
-          ...variant,
-          id: variant._id,
-          hasCustomImage: !!variant.imageUrl && variant.imageUrl !== productDetails.imageUrl,
-          variantPrice: variant.variantPrice || 0,
-          actualPrice: variant.actualPrice || 0,
-          stockQty: variant.stockQty || 0,
-          itemCode: variant.itemCode || '',
-          spNo: variant.spNo || '',
-          uom: variant.uom || '',
-          defUom: variant.defUom || '',
-          itemOnFlag: variant.itemOnFlag || false,
-          rackNo: variant.rackNo || '',
-          opStock: variant.opStock || 0,
-          hsnCode: variant.hsnCode || '',
-          gst: variant.gst || 0,
-          stockItem: variant.stockItem || '',
-          itemDisc: variant.itemDisc || '',
-          mrp: variant.mrp || 0,
-          purRate: variant.purRate || 0,
-          invoiceRate: variant.invoiceRate || 0,
-          cashMemoRate: variant.cashMemoRate || 0,
-          estimateRate: variant.estimateRate || 0,
-          cashSalesRate: variant.cashSalesRate || 0,
-          agRate: variant.agRate || 0,
-          invDisc: variant.invDisc || 0,
-          cashMemoDisc: variant.cashMemoDisc || 0,
-          estimateDisc: variant.estimateDisc || 0,
-          agDisc: variant.agDisc || 0,
-        }));
-        setVariants(processedVariants);
-      }
+    if (fetchedVariants && Array.isArray(fetchedVariants)) {
+      const processedVariants = fetchedVariants.map(variant => ({
+        ...variant,
+        id: variant._id, // This is the real MongoDB _id
+        hasCustomImage: !!variant.imageUrl && variant.imageUrl !== productDetails.imageUrl,
+        variantPrice: variant.variantPrice || 0,
+        actualPrice: variant.actualPrice || 0,
+        stockQty: variant.stockQty || 0,
+        itemCode: variant.itemCode || '',
+        spNo: variant.spNo || '',
+        uom: variant.uom || '',
+        defUom: variant.defUom || '',
+        itemOnFlag: variant.itemOnFlag || false,
+        rackNo: variant.rackNo || '',
+        opStock: variant.opStock || 0,
+        hsnCode: variant.hsnCode || '',
+        gst: variant.gst || 0,
+        stockItem: variant.stockItem || '',
+        itemDisc: variant.itemDisc || '',
+        mrp: variant.mrp || 0,
+        purRate: variant.purRate || 0,
+        invoiceRate: variant.invoiceRate || 0,
+        cashMemoRate: variant.cashMemoRate || 0,
+        estimateRate: variant.estimateRate || 0,
+        cashSalesRate: variant.cashSalesRate || 0,
+        agRate: variant.agRate || 0,
+        invDisc: variant.invDisc || 0,
+        cashMemoDisc: variant.cashMemoDisc || 0,
+        estimateDisc: variant.estimateDisc || 0,
+        agDisc: variant.agDisc || 0,
+        // Ensure we have the original _id for updates
+        _id: variant._id
+      }));
+      
+      setVariants(processedVariants);
     }
-  }, [productResponse, productData]);
-
+     setDeletedVariants([]);
+  }
+}, [productResponse, productData]);
   // Handle product data update
   const handleProductUpdate = (updates) => {
     setProductData(prev => ({ ...prev, ...updates }));
     setIsDirty(true);
   };
 
-  // Handle variants update
-  const handleVariantsUpdate = (newVariants) => {
-    setVariants(newVariants);
-    setIsDirty(true);
-  };
-
+// Replace your handleVariantsUpdate function with this:
+const handleVariantsUpdate = useCallback((newVariants, deletedVariantId = null) => {
+  console.log('🔄 handleVariantsUpdate called:', { 
+    newVariantsCount: newVariants.length, 
+    deletedVariantId,
+    currentVariantsCount: variants.length 
+  });
+  
+  // Update the variants state first
+  setVariants(newVariants);
+  
+  // Then track deletion if needed
+  if (deletedVariantId) {
+    console.log('🗑️ Tracking deletion for variant:', deletedVariantId);
+    
+    // Check if it's a valid MongoDB ObjectId (not a temp ID like 'new-xxx')
+    const isValidObjectId = deletedVariantId && /^[0-9a-fA-F]{24}$/.test(deletedVariantId);
+    
+    if (isValidObjectId) {
+      console.log('✅ Valid ObjectId, adding to deletedVariants');
+      setDeletedVariants(prev => {
+        // Check if already in the array to avoid duplicates
+        if (prev.includes(deletedVariantId)) {
+          console.log('⚠️ Variant already in deletedVariants');
+          return prev;
+        }
+        const updated = [...prev, deletedVariantId];
+        console.log('📝 Updated deletedVariants:', updated);
+        return updated;
+      });
+    } else {
+      console.log('⚠️ Not a valid ObjectId (probably a temp variant), skipping deletion tracking');
+    }
+  }
+  
+  setIsDirty(true);
+}, [variants]); // Add variants as dependency
   // Save product individually
   const handleSaveProduct = async () => {
     if (!productData) return;
@@ -311,41 +347,64 @@ const handleImageUpload = async (file, target = 'product') => {
     await updateProductMutation.mutateAsync(updateData);
   };
 
-  // Save all variants and optionally product
+// Save all variants and optionally product
+// Update handleSaveVariants to include deleted variants
   const handleSaveVariants = async (includeProduct = false) => {
-    if (!variants.length) return;
-
-    let updateData;
-    if (includeProduct) {
-      const { originalData, ...productUpdateData } = productData;
-      const variantsUpdateData = variants.map(variant => {
-        const { id, isNew, hasCustomImage, ...variantData } = variant;
-        return {
-          _id: isNew ? undefined : id,
-          ...variantData
-        };
+    if (!variants.length && !deletedVariants.length) {
+      setSnackbar({
+        open: true,
+        message: 'No changes to save',
+        severity: 'warning',
       });
-
-      updateData = {
-        product: productUpdateData,
-        variants: variantsUpdateData,
-      };
-    } else {
-      const variantsUpdateData = variants.map(variant => {
-        const { id, isNew, hasCustomImage, ...variantData } = variant;
-        return {
-          _id: isNew ? undefined : id,
-          ...variantData
-        };
-      });
-
-      updateData = {
-        variants: variantsUpdateData,
-      };
+      return;
     }
 
-    await bulkUpdateMutation.mutateAsync(updateData);
+    try {
+      // Prepare variants data
+      const variantsUpdateData = variants.map(variant => {
+        const { id, isNew, hasCustomImage, ...variantData } = variant;
+        
+        // Check if this is a new variant (has temp ID like 'new-' or 'copy-')
+        const isNewVariant = id && (id.toString().startsWith('new-') || id.toString().startsWith('copy-'));
+        
+        // For new variants, don't send _id
+        // For existing variants, send _id if it's a valid ObjectId
+        const isValidObjectId = id && /^[0-9a-fA-F]{24}$/.test(id);
+        
+        return {
+          ...variantData,
+          // Only include _id for existing variants with valid ObjectId
+          ...(isValidObjectId && !isNewVariant ? { _id: id } : {})
+        };
+      });
+
+      let updateData;
+      if (includeProduct && productData) {
+        const { originalData, ...productUpdateData } = productData;
+        updateData = {
+          product: productUpdateData,
+          variants: variantsUpdateData,
+          variantsToDelete: deletedVariants // Send IDs to delete
+        };
+      } else {
+        updateData = {
+          variants: variantsUpdateData,
+          variantsToDelete: deletedVariants // Send IDs to delete
+        };
+      }
+
+      console.log('Sending bulk update data with deletions:', updateData);
+      
+      await bulkUpdateMutation.mutateAsync(updateData);
+      
+      // Clear deleted variants after successful save
+      setDeletedVariants([]);
+      
+    } catch (error) {
+      console.error('Save variants error:', error);
+    }
   };
+
 
   // Warn before leaving page with unsaved changes
   useEffect(() => {
