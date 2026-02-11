@@ -90,7 +90,7 @@ const ProductDetailsPage = () => {
   const navigate = useNavigate();
   const { addItemToCart, snackbarOpen, snackbarMessage, closeSnackbar } =
     useCart();
-  const { isAuthenticated, isAdmin,user } = useAuth();
+  const { isAuthenticated, isAdmin, user } = useAuth();
   // Responsive breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
@@ -102,11 +102,11 @@ const ProductDetailsPage = () => {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedBrandCategory, setSelectedBrandCategory] = useState("");
   const [viewMode, setViewMode] = useState("card"); // 'card' or 'list'
-  const ITEMS_PER_PAGE = 12; // Changed to multiple of 4 for better alignment
+  const ITEMS_PER_PAGE = 8; // Changed to multiple of 4 for better alignment
   const [currentPage, setCurrentPage] = useState(1);
 
   const {
-    data: product = { productDetails: {}, variants: [], priceRange: "",imageUrl: "" },
+    data: product = { productDetails: {}, variants: [] },
     isLoading,
     isError,
   } = useQuery({
@@ -114,7 +114,7 @@ const ProductDetailsPage = () => {
     queryFn: () => fetchProductWithVariants(productId),
     enabled: !!productId,
   });
-console.log("Fetched product data:", product);
+  console.log("Fetched product data:", product);
   useEffect(() => {
     setCurrentPage(1);
   }, [variantSearchTerm, selectedBrandCategory]);
@@ -226,77 +226,16 @@ console.log("Fetched product data:", product);
     );
   }
 
-  const pickedImage =  selectedVariant?.imageUrl || product.productDetails.imageUrl === "https://example.com/default-product.jpg" ? getDefaultImageForProduct(product._id) : product.productDetails.imageUrl || getRandomDefaultImage();
-console.log("Picked image URL:", pickedImage);
+  const pickedImage = selectedVariant?.imageUrl || product.productDetails.imageUrl === "https://example.com/default-product.jpg" ? getDefaultImageForProduct(product._id) : product.productDetails.imageUrl || getRandomDefaultImage();
+  console.log("Picked image URL:", pickedImage);
   const categoryName =
     product.categoryId?.name || product.categoryId?.label || "Uncategorized";
 
   return (
     <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3, md: 4 } }}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-        <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography
-          variant="h5"
-          fontWeight={700}
-          sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" } }}
-        >
-          Product Details
-        </Typography>
-      </Box>
-
-      <Grid container spacing={3} justifyContent="center">
-        <Grid item xs={12}>
-          <Box sx={{ mb: 2, textAlign: "center" }}>
-            <Typography
-              variant="h4"
-              fontWeight={800}
-              gutterBottom
-              sx={{
-                fontSize: { xs: "1.5rem", sm: "2rem", md: "2.5rem" },
-                textAlign: "center",
-              }}
-            >
-              {product.productDetails?.productName || "Unnamed Product"}
-            </Typography>
-
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{
-                mb: 2,
-                flexWrap: "wrap",
-                gap: 1,
-                justifyContent: "center",
-              }}
-            >
-              <Chip
-                icon={<LocalOfferIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />}
-                label={categoryName}
-                color="primary"
-                variant="outlined"
-                size={isMobile ? "small" : "medium"}
-              />
-              <Chip
-                label={product?.priceRange}
-                color="success"
-                size={isMobile ? "small" : "medium"}
-              />
-              <Chip
-                label={`${product.variants?.length || 0} variant${
-                  (product.variants?.length || 0) === 1 ? "" : "s"
-                }`}
-                variant="outlined"
-                size={isMobile ? "small" : "medium"}
-              />
-            </Stack>
-          </Box>
-        </Grid>
-      </Grid>
-
       {product.variants && product.variants.length > 0 && (
         <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
+
           <Box
             sx={{
               display: "flex",
@@ -307,17 +246,9 @@ console.log("Picked image URL:", pickedImage);
               gap: 2,
             }}
           >
-            <Typography
-              variant="h5"
-              fontWeight={700}
-              sx={{
-                fontSize: { xs: "1.25rem", sm: "1.5rem" },
-                textAlign: { xs: "center", sm: "left" },
-                width: { xs: "100%", sm: "auto" },
-              }}
-            >
-              All Variants ({product.variants.length})
-            </Typography>
+            <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }} testid="back-button">
+              <Box><ArrowBackIcon onClick={() => navigate(-1)} />Back To Main Product</Box>
+            </IconButton>
 
             {/* View Mode Toggle - Centered on mobile */}
             <Box
@@ -450,9 +381,8 @@ console.log("Picked image URL:", pickedImage);
                   }}
                 >
                   <Chip
-                    label={`${filteredVariants.length} variant${
-                      filteredVariants.length !== 1 ? "s" : ""
-                    } found`}
+                    label={`${filteredVariants.length} variant${filteredVariants.length !== 1 ? "s" : ""
+                      } found`}
                     color="primary"
                     variant="outlined"
                     size="small"
@@ -655,13 +585,12 @@ console.log("Picked image URL:", pickedImage);
                                   }}
                                 >
                                   {isAuthenticated && (user?.role === "admin" || user?.role === "user")
-                                    ?  `Invoice Price : ₹${
-                                        variant?.invoicePrice?.toFixed(2) ||
-                                        "N/A"
-                                      }`
+                                    ? `Invoice Price : ₹${variant?.invoicePrice?.toFixed(2) ||
+                                    "N/A"
+                                    }`
                                     : "Please log in"}
                                 </Typography>
-                                      <Typography
+                                <Typography
                                   variant="h6"
                                   sx={{
                                     fontWeight: 900,
@@ -671,10 +600,9 @@ console.log("Picked image URL:", pickedImage);
                                   }}
                                 >
                                   {isAuthenticated && (user?.role === "admin" || user?.role === "user" || user?.role === "viewer")
-                                    ? `Estimate Price: ₹${
-                                        variant?.estimatePrice?.toFixed(2) ||
-                                        "N/A"
-                                      }`
+                                    ? `Estimate Price: ₹${variant?.estimatePrice?.toFixed(2) ||
+                                    "N/A"
+                                    }`
                                     : "Please log in"}
                                 </Typography>
 
@@ -739,7 +667,7 @@ console.log("Picked image URL:", pickedImage);
                           <TableCell
                             sx={{ fontWeight: 700, textAlign: "center" }}
                           >
-                            Variant
+                            Product Name
                           </TableCell>
                           <TableCell
                             sx={{ fontWeight: 700, textAlign: "center" }}
@@ -749,7 +677,12 @@ console.log("Picked image URL:", pickedImage);
                           <TableCell
                             sx={{ fontWeight: 700, textAlign: "center" }}
                           >
-                            Price
+                            Invoice Price
+                          </TableCell>
+                          <TableCell
+                            sx={{ fontWeight: 700, textAlign: "center" }}
+                          >
+                            Estimate Price
                           </TableCell>
                           <TableCell
                             sx={{ fontWeight: 700, textAlign: "center" }}
@@ -828,10 +761,21 @@ console.log("Picked image URL:", pickedImage);
                                 fontWeight={900}
                                 color="success.main"
                               >
-                                {isAuthenticated
-                                  ? `₹${
-                                      variant?.invoicePrice?.toFixed(2) || "N/A"
-                                    }`
+                                {isAuthenticated && (user?.role === "admin" || user?.role === "user")
+                                  ? `₹${variant?.invoicePrice?.toFixed(2) || "N/A"
+                                  }`
+                                  : "Login to view"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ textAlign: "center" }}>
+                              <Typography
+                                variant="body1"
+                                fontWeight={900}
+                                color="success.main"
+                              >
+                                {isAuthenticated && (user?.role === "admin" || user?.role === "user" || user?.role === "viewer")
+                                  ? `₹${variant?.estimatePrice?.toFixed(2) || "N/A"
+                                  }`
                                   : "Login to view"}
                               </Typography>
                             </TableCell>
