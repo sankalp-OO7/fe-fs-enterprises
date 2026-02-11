@@ -90,8 +90,7 @@ const ProductDetailsPage = () => {
   const navigate = useNavigate();
   const { addItemToCart, snackbarOpen, snackbarMessage, closeSnackbar } =
     useCart();
-  const { isAuthenticated, isAdmin } = useAuth();
-
+  const { isAuthenticated, isAdmin,user } = useAuth();
   // Responsive breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
@@ -637,7 +636,7 @@ console.log("Picked image URL:", pickedImage);
                                 textAlign: "center",
                               }}
                             >
-                              {variant.description ||
+                              {variant.variantDescription ||
                                 "No description available."}
                             </Typography>
                             <Box sx={{ mt: "auto" }}>
@@ -655,9 +654,25 @@ console.log("Picked image URL:", pickedImage);
                                     textAlign: "center",
                                   }}
                                 >
-                                  {isAuthenticated
-                                    ? `₹${
-                                        variant?.actualPrice?.toFixed(2) ||
+                                  {isAuthenticated && (user?.role === "admin" || user?.role === "user")
+                                    ?  `Invoice Price : ₹${
+                                        variant?.invoicePrice?.toFixed(2) ||
+                                        "N/A"
+                                      }`
+                                    : "Please log in"}
+                                </Typography>
+                                      <Typography
+                                  variant="h6"
+                                  sx={{
+                                    fontWeight: 900,
+                                    color: "success.secondary",
+                                    fontSize: "1.1rem",
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  {isAuthenticated && (user?.role === "admin" || user?.role === "user" || user?.role === "viewer")
+                                    ? `Estimate Price: ₹${
+                                        variant?.estimatePrice?.toFixed(2) ||
                                         "N/A"
                                       }`
                                     : "Please log in"}
@@ -815,7 +830,7 @@ console.log("Picked image URL:", pickedImage);
                               >
                                 {isAuthenticated
                                   ? `₹${
-                                      variant?.actualPrice?.toFixed(2) || "N/A"
+                                      variant?.invoicePrice?.toFixed(2) || "N/A"
                                     }`
                                   : "Login to view"}
                               </Typography>
