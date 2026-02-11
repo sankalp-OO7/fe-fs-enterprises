@@ -225,9 +225,17 @@ const ProductDetailsPage = () => {
       </Container>
     );
   }
+  const [pickedImage, setPickedImage ] = useState("");
+  useEffect(() => {
+    if (selectedVariant?.imageUrl) {
+      setPickedImage(selectedVariant.imageUrl);
+    } else if (product.productDetails.imageUrl && product.productDetails.imageUrl !== "https://example.com/default-product.jpg") {
+      setPickedImage(product.productDetails.imageUrl);
+    } else {
+      setPickedImage(getDefaultImageForProduct(product._id));
+    }
+  }, [selectedVariant, product.productDetails.imageUrl, product._id]);
 
-  const pickedImage = selectedVariant?.imageUrl || product.productDetails.imageUrl === "https://example.com/default-product.jpg" ? getDefaultImageForProduct(product._id) : product.productDetails.imageUrl || getRandomDefaultImage();
-  console.log("Picked image URL:", pickedImage);
   const categoryName =
     product.categoryId?.name || product.categoryId?.label || "Uncategorized";
 
