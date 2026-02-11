@@ -31,17 +31,90 @@ const CartDialog = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     customerName: "",
     gstNo: "",
-    billType: "GST",
+    billType: "INVOICE",
     materialType: "Cash",
+    mobileNo: "",
     shippingAddress: "",
   });
 
+  /* ---------------- VALIDATION FUNCTIONS ---------------- */
+  const validateMobile = (mobile) => {
+    const mobileRegex = /^[0-9]{10}$/;
+    return mobileRegex.test(mobile);
+  };
+
+  const validateGST = (gst) => {
+    if (!gst) return true; // GST is optional
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    return gstRegex.test(gst);
+  };
+
+  const validateName = (name) => {
+    return name.trim().length >= 3;
+  };
+
+  const validateAddress = (address) => {
+    return address.trim().length >= 10;
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Name validation
+    if (!formData.customerName.trim()) {
+      newErrors.customerName = "Customer name is required";
+    } else if (!validateName(formData.customerName)) {
+      newErrors.customerName = "Name must be at least 3 characters";
+    }
+
+    // Mobile validation
+    if (!formData.mobileNo.trim()) {
+      newErrors.mobileNo = "Mobile number is required";
+    } else if (!validateMobile(formData.mobileNo)) {
+      newErrors.mobileNo = "Mobile number must be exactly 10 digits";
+    }
+
+    // GST validation (optional but must be valid if provided)
+    if (formData.gstNo.trim() && !validateGST(formData.gstNo)) {
+      newErrors.gstNo = "Invalid GST format";
+    }
+
+    // Address validation
+    if (!formData.shippingAddress.trim()) {
+      newErrors.shippingAddress = "Shipping address is required";
+    } else if (!validateAddress(formData.shippingAddress)) {
+      newErrors.shippingAddress = "Address must be at least 10 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Special handling for mobile number - only allow digits
+    if (name === "mobileNo") {
+      const digitsOnly = value.replace(/\D/g, "");
+      // Limit to 10 digits
+      if (digitsOnly.length <= 10) {
+        setFormData((prev) => ({ ...prev, [name]: digitsOnly }));
+      }
+      // Clear error for this field when user starts typing
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: "" }));
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      // Clear error for this field when user starts typing
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: "" }));
+      }
+    }
   };
 
   // Get price based on bill type
@@ -49,14 +122,12 @@ const CartDialog = ({
     if (!variant) return 0;
 
     switch (billType) {
-      case "GST":
-        return variant.invoiceRate ?? variant.actualPrice ?? 0;
-      case "Bill":
-        return variant.cashMemoRate ?? variant.actualPrice ?? 0;
-      case "Estimate":
-        return variant.estimateRate ?? variant.actualPrice ?? 0;
+      case "INVOICE":
+        return variant.invoicePrice ?? variant.invoicePrice ?? 0;
+      case "SPECIAL PRICE":
+        return variant.estimatePrice ?? variant.estimatePrice ?? 0;
       default:
-        return variant.actualPrice ?? 0;
+        return variant.invoicePrice ?? 0;
     }
   };
 
@@ -69,26 +140,28 @@ const CartDialog = ({
   };
 
   const handleCheckout = async () => {
+    // Validate form before proceeding
+    if (!validateForm()) {
+      setError("Please fix the validation errors");
+      return;
+    }
+
+    if (cart.length === 0) {
+      setError("Your cart is empty.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      if (cart.length === 0) {
-        setError("Your cart is empty.");
-        return;
-      }
-
-      if (!formData.customerName) {
-        setError("Please enter customer name");
-        return;
-      }
-
       const payload = {
         customerName: formData.customerName,
-        gstNo: formData.gstNo,
+        gstNo: formData.gstNo || null,
         billType: formData.billType,
         materialType: formData.materialType,
         shippingAddress: formData.shippingAddress,
+        mobileNo: formData.mobileNo,
         items: cart.map((item) => {
           const price = getPriceByBillType(item.variant, formData.billType);
           return {
@@ -110,10 +183,12 @@ const CartDialog = ({
         setFormData({
           customerName: "",
           gstNo: "",
-          billType: "GST",
+          billType: "INVOICE",
           materialType: "Cash",
+          mobileNo: "",
           shippingAddress: "",
         });
+        setErrors({});
         closeCart();
       } else {
         setError("Failed to place the order. Please try again.");
@@ -126,19 +201,22 @@ const CartDialog = ({
     }
   };
 
+  // Check if mobile view
+  const isMobile = window.innerWidth < 600;
+
   return (
     <Dialog
       open={cartOpen}
       onClose={closeCart}
       maxWidth="sm"
       fullWidth
-      fullScreen={window.innerWidth < 600}
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: { xs: 0, sm: 3 },
-          maxHeight: { xs: "100vh", sm: "90vh" },
-          m: { xs: 0, sm: 2 },
-          width: { xs: "100%", sm: "100%" },
+          borderRadius: isMobile ? 0 : 3,
+          maxHeight: isMobile ? "100vh" : "90vh",
+          m: isMobile ? 0 : 2,
+          width: isMobile ? "100%" : "100%",
         },
       }}
     >
@@ -150,6 +228,7 @@ const CartDialog = ({
           position: "sticky",
           top: 0,
           zIndex: 1,
+          px: isMobile ? 2 : 3,
         }}
       >
         <Stack
@@ -158,10 +237,10 @@ const CartDialog = ({
           justifyContent="space-between"
         >
           <Stack direction="row" alignItems="center" spacing={2}>
-            <ShoppingCart sx={{ fontSize: 28 }} />
+            <ShoppingCart sx={{ fontSize: isMobile ? 24 : 28 }} />
             <Box>
               <Typography
-                variant="h5"
+                variant={isMobile ? "h6" : "h5"}
                 sx={{ fontWeight: 700, lineHeight: 1.2 }}
               >
                 Shopping Cart
@@ -184,19 +263,19 @@ const CartDialog = ({
         </Stack>
       </DialogTitle>
 
-      <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+      <DialogContent sx={{ p: isMobile ? 2 : 3 }}>
         {cart.length === 0 ? (
-          <Box sx={{ p: 6, textAlign: "center" }}>
+          <Box sx={{ p: isMobile ? 4 : 6, textAlign: "center" }}>
             <ShoppingCart
               sx={{
-                fontSize: "5rem",
+                fontSize: isMobile ? "4rem" : "5rem",
                 color: "text.secondary",
                 opacity: 0.3,
                 mb: 2,
               }}
             />
             <Typography
-              variant="h6"
+              variant={isMobile ? "body1" : "h6"}
               color="text.secondary"
               sx={{ fontWeight: 600 }}
             >
@@ -205,6 +284,13 @@ const CartDialog = ({
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               Add some products to get started!
             </Typography>
+            <Button
+              variant="contained"
+              onClick={closeCart}
+              sx={{ mt: 3 }}
+            >
+              Continue Shopping
+            </Button>
           </Box>
         ) : (
           <>
@@ -212,7 +298,7 @@ const CartDialog = ({
             <Box
               sx={{
                 mb: 3,
-                p: 2,
+                p: isMobile ? 1.5 : 2,
                 bgcolor: "grey.50",
                 borderRadius: 2,
                 border: "1px solid",
@@ -229,21 +315,46 @@ const CartDialog = ({
                   name="customerName"
                   value={formData.customerName}
                   onChange={handleInputChange}
+                  error={!!errors.customerName}
+                  helperText={errors.customerName}
                   fullWidth
                   size="small"
                   required
                 />
 
                 <TextField
-                  label="GST No"
+                  label="Mobile No"
+                  name="mobileNo"
+                  value={formData.mobileNo}
+                  onChange={handleInputChange}
+                  error={!!errors.mobileNo}
+                  helperText={errors.mobileNo || "Exactly 10 digits"}
+                  fullWidth
+                  size="small"
+                  required
+                  inputProps={{
+                    maxLength: 10,
+                    pattern: "[0-9]*",
+                    inputMode: "numeric",
+                  }}
+                />
+
+                <TextField
+                  label="GST No (Optional)"
                   name="gstNo"
                   value={formData.gstNo}
                   onChange={handleInputChange}
+                  error={!!errors.gstNo}
+                  helperText={errors.gstNo}
                   fullWidth
                   size="small"
+                  placeholder="22AAAAA0000A1Z5"
                 />
 
-                <Stack direction="row" spacing={2}>
+                <Stack 
+                  direction={isMobile ? "column" : "row"} 
+                  spacing={isMobile ? 1 : 2}
+                >
                   <FormControl fullWidth size="small">
                     <InputLabel>Bill Type</InputLabel>
                     <Select
@@ -252,9 +363,8 @@ const CartDialog = ({
                       onChange={handleInputChange}
                       label="Bill Type"
                     >
-                      <MenuItem value="GST">GST</MenuItem>
-                      <MenuItem value="Bill">Bill</MenuItem>
-                      <MenuItem value="Estimate">Estimate</MenuItem>
+                      <MenuItem value="INVOICE">Invoice</MenuItem>
+                      <MenuItem value="SPECIAL PRICE">Special Price</MenuItem>
                     </Select>
                   </FormControl>
 
@@ -277,29 +387,32 @@ const CartDialog = ({
                   name="shippingAddress"
                   value={formData.shippingAddress}
                   onChange={handleInputChange}
+                  error={!!errors.shippingAddress}
+                  helperText={errors.shippingAddress}
                   fullWidth
                   multiline
-                  rows={2}
+                  rows={isMobile ? 2 : 2}
                   size="small"
+                  required
                 />
               </Stack>
             </Box>
 
             {/* Cart Items */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
-              Cart Items
+              Cart Items ({cart.length})
             </Typography>
             
             <List
               sx={{
-                maxHeight: { xs: 300, sm: 350 },
+                maxHeight: isMobile ? 250 : 350,
                 overflowY: "auto",
                 p: 0,
                 mb: 2,
-                "&::-webkit-scrollbar": { width: 8 },
+                "&::-webkit-scrollbar": { width: 4 },
                 "&::-webkit-scrollbar-thumb": {
                   backgroundColor: "rgba(0,0,0,0.2)",
-                  borderRadius: 8,
+                  borderRadius: 4,
                 },
               }}
             >
@@ -318,34 +431,38 @@ const CartDialog = ({
             {/* Summary */}
             <Box
               sx={{
-                p: 2,
+                p: isMobile ? 1.5 : 2,
                 bgcolor: "grey.50",
                 borderRadius: 2,
                 border: "1px solid",
                 borderColor: "divider",
+                position: isMobile ? "sticky" : "static",
+                bottom: isMobile ? 0 : "auto",
+                zIndex: isMobile ? 2 : 1,
               }}
             >
               <Stack spacing={2}>
                 <Stack
-                  direction="row"
+                  direction={isMobile ? "column" : "row"}
                   justifyContent="space-between"
-                  alignItems="center"
+                  alignItems={isMobile ? "flex-start" : "center"}
+                  spacing={isMobile ? 1 : 0}
                 >
                   <Box>
                     <Typography variant="body2" color="text.secondary">
                       Bill Type
                     </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      {formData.billType}
+                    <Typography variant={isMobile ? "body1" : "h6"} sx={{ fontWeight: 700 }}>
+                      {formData.billType === "INVOICE" ? "Invoice" : "Special Price"}
                     </Typography>
                   </Box>
 
-                  <Box>
-                    <Typography variant="body2" color="text.secondary" align="right">
+                  <Box sx={{ width: isMobile ? "100%" : "auto" }}>
+                    <Typography variant="body2" color="text.secondary" align={isMobile ? "left" : "right"}>
                       Total Amount
                     </Typography>
                     <Typography
-                      variant="h4"
+                      variant={isMobile ? "h5" : "h4"}
                       sx={{ fontWeight: 700, color: "primary.main" }}
                     >
                       ₹{getTotalCartValue().toFixed(2)}
@@ -354,12 +471,22 @@ const CartDialog = ({
                 </Stack>
 
                 {error && (
-                  <Alert severity="error" sx={{ borderRadius: 1 }}>
+                  <Alert 
+                    severity="error" 
+                    sx={{ 
+                      borderRadius: 1,
+                      fontSize: isMobile ? "0.875rem" : "1rem",
+                    }}
+                    onClose={() => setError("")}
+                  >
                     {error}
                   </Alert>
                 )}
 
-                <Stack direction="row" spacing={2}>
+                <Stack 
+                  direction={isMobile ? "column-reverse" : "row"} 
+                  spacing={2}
+                >
                   <Button
                     variant="outlined"
                     color="error"
@@ -369,7 +496,7 @@ const CartDialog = ({
                       textTransform: "none",
                       fontWeight: 600,
                       borderRadius: 2,
-                      py: 1.5,
+                      py: isMobile ? 1.2 : 1.5,
                     }}
                   >
                     Clear Cart
@@ -378,15 +505,21 @@ const CartDialog = ({
                   <Button
                     variant="contained"
                     onClick={handleCheckout}
-                    disabled={loading || !formData.customerName}
+                    disabled={
+                      loading || 
+                      !formData.customerName || 
+                      !formData.mobileNo || 
+                      !formData.shippingAddress || 
+                      cart.length === 0
+                    }
                     sx={{
                       flex: 1,
                       borderRadius: 2,
-                      py: 1.5,
+                      py: isMobile ? 1.2 : 1.5,
                       background:
                         "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                       fontWeight: 700,
-                      fontSize: "1.05rem",
+                      fontSize: isMobile ? "0.95rem" : "1.05rem",
                       textTransform: "none",
                       boxShadow: "0 4px 20px rgba(102, 126, 234, 0.4)",
                       "&:hover": {

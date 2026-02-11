@@ -17,6 +17,8 @@ import {
   IconButton,
   Typography,
   Dialog,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -26,6 +28,12 @@ import axiosClient from "../../api/axiosClient";
 
 const UserMemo = () => {
   const [openDialog, setOpenDialog] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const {
     cart = [],
@@ -37,31 +45,101 @@ const UserMemo = () => {
   const [formData, setFormData] = useState({
     name: "",
     gstNo: "",
-    billType: "GST", // GST | Bill | Estimate
-    materialType: "Cash", // Cash | Credit
+    billType: "INVOICE",
+    materialType: "Cash",
+    mobileNo: "",
     address: "",
   });
+
+  /* ---------------- VALIDATION FUNCTIONS ---------------- */
+  const validateMobile = (mobile) => {
+    const mobileRegex = /^[0-9]{10}$/;
+    return mobileRegex.test(mobile);
+  };
+
+  const validateGST = (gst) => {
+    if (!gst) return true; // GST is optional
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    return gstRegex.test(gst);
+  };
+
+  const validateName = (name) => {
+    return name.trim().length >= 3;
+  };
+
+  const validateAddress = (address) => {
+    return address.trim().length >= 10;
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = "Customer name is required";
+    } else if (!validateName(formData.name)) {
+      newErrors.name = "Name must be at least 3 characters";
+    }
+
+    // Mobile validation
+    if (!formData.mobileNo.trim()) {
+      newErrors.mobileNo = "Mobile number is required";
+    } else if (!validateMobile(formData.mobileNo)) {
+      newErrors.mobileNo = "Mobile number must be exactly 10 digits";
+    }
+
+    // GST validation (optional but must be valid if provided)
+    if (formData.gstNo.trim() && !validateGST(formData.gstNo)) {
+      newErrors.gstNo = "Invalid GST format";
+    }
+
+    // Address validation
+    if (!formData.address.trim()) {
+      newErrors.address = "Shipping address is required";
+    } else if (!validateAddress(formData.address)) {
+      newErrors.address = "Address must be at least 10 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   /* ---------------- PRICE SELECTION LOGIC ---------------- */
   const getPriceByBillType = (variant, billType) => {
     if (!variant) return 0;
 
     switch (billType) {
-      case "GST":
-        return variant.invoiceRate ?? variant.actualPrice ?? 0;
-      case "Bill":
-        return variant.cashMemoRate ?? variant.actualPrice ?? 0;
-      case "Estimate":
-        return variant.estimateRate ?? variant.actualPrice ?? 0;
+      case "INVOICE":
+        return variant.invoicePrice ?? variant.invoicePrice ?? 0;
+      case "SPECIAL PRICE":
+        return variant.estimatePrice ?? variant.estimatePrice ?? 0;
       default:
-        return variant.actualPrice ?? 0;
+        return variant.invoicePrice ?? 0;
     }
   };
 
   /* ---------------- FORM HANDLERS ---------------- */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Special handling for mobile number - only allow digits
+    if (name === "mobileNo") {
+      const digitsOnly = value.replace(/\D/g, "");
+      // Limit to 10 digits
+      if (digitsOnly.length <= 10) {
+        setFormData((prev) => ({ ...prev, [name]: digitsOnly }));
+      }
+      // Clear error for this field when user starts typing
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: "" }));
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      // Clear error for this field when user starts typing
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: "" }));
+      }
+    }
   };
 
   const handleQuantityChange = (cartItemId, value) => {
@@ -80,16 +158,33 @@ const UserMemo = () => {
       .toFixed(2);
   };
 
-  /* ---------------- PLACE ORDER ---------------- */
   const handlePlaceOrder = async () => {
-    if (!cart.length) return;
+    // Validate form before proceeding
+    if (!validateForm()) {
+      setSnackbar({
+        open: true,
+        message: "Please fix the validation errors",
+        severity: "error",
+      });
+      return;
+    }
+
+    if (!cart.length) {
+      setSnackbar({
+        open: true,
+        message: "Cart is empty",
+        severity: "error",
+      });
+      return;
+    }
 
     const payload = {
       customerName: formData.name,
-      gstNo: formData.gstNo,
+      gstNo: formData.gstNo || null,
       billType: formData.billType,
       materialType: formData.materialType,
       shippingAddress: formData.address,
+      mobileNo: formData.mobileNo,
 
       items: cart.map((item) => {
         const price = getPriceByBillType(item.variant, formData.billType);
@@ -98,7 +193,6 @@ const UserMemo = () => {
           variantId: item.variant._id,
           quantity: item.quantity,
           price: price,
-          // totalPrice: price * item.quantity,
         };
       }),
 
@@ -114,21 +208,36 @@ const UserMemo = () => {
     try {
       const res = await axiosClient.post("/orders", payload);
       if (res.status === 201) {
-        alert("Order placed successfully");
+        setSnackbar({
+          open: true,
+          message: "Order placed successfully!",
+          severity: "success",
+        });
+        
         clearCart();
         setFormData({
           name: "",
           gstNo: "",
-          billType: "GST",
+          billType: "INVOICE",
           materialType: "Cash",
+          mobileNo: "",
           address: "",
         });
+        setErrors({});
         setOpenDialog(false);
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to place order");
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed to place order",
+        severity: "error",
+      });
     }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
   /* ---------------- UI ---------------- */
@@ -141,14 +250,36 @@ const UserMemo = () => {
           name="name"
           value={formData.name}
           onChange={handleInputChange}
+          error={!!errors.name}
+          helperText={errors.name}
+          required
           sx={{ flex: 1, minWidth: 200 }}
         />
 
         <TextField
-          label="GST No"
+          label="GST No (Optional)"
           name="gstNo"
           value={formData.gstNo}
           onChange={handleInputChange}
+          error={!!errors.gstNo}
+          helperText={errors.gstNo}
+          placeholder="22AAAAA0000A1Z5"
+          sx={{ flex: 1, minWidth: 200 }}
+        />
+        
+        <TextField
+          label="Mobile No"
+          name="mobileNo"
+          value={formData.mobileNo}
+          onChange={handleInputChange}
+          error={!!errors.mobileNo}
+          helperText={errors.mobileNo || "Exactly 10 digits"}
+          required
+          inputProps={{
+            maxLength: 10,
+            pattern: "[0-9]*",
+            inputMode: "numeric",
+          }}
           sx={{ flex: 1, minWidth: 200 }}
         />
 
@@ -160,9 +291,8 @@ const UserMemo = () => {
             onChange={handleInputChange}
             label="Bill Type"
           >
-            <MenuItem value="GST">GST</MenuItem>
-            <MenuItem value="Bill">Bill</MenuItem>
-            <MenuItem value="Estimate">Estimate</MenuItem>
+            <MenuItem value="INVOICE">Invoice</MenuItem>
+            <MenuItem value="SPECIAL PRICE">Special Price</MenuItem>
           </Select>
         </FormControl>
 
@@ -185,6 +315,9 @@ const UserMemo = () => {
         name="address"
         value={formData.address}
         onChange={handleInputChange}
+        error={!!errors.address}
+        helperText={errors.address}
+        required
         fullWidth
         multiline
         rows={2}
@@ -241,6 +374,10 @@ const UserMemo = () => {
                         onChange={(e) =>
                           handleQuantityChange(item.id, e.target.value)
                         }
+                        inputProps={{
+                          min: 1,
+                          style: { width: "70px" },
+                        }}
                       />
                     </TableCell>
 
@@ -255,19 +392,21 @@ const UserMemo = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={5} align="center">
-                  No products added
+                  <Typography color="text.secondary" sx={{ py: 2 }}>
+                    No products added to cart
+                  </Typography>
                 </TableCell>
               </TableRow>
             )}
 
             <TableRow>
               <TableCell colSpan={4} align="right">
-                <Typography fontWeight="bold">
+                <Typography fontWeight="bold" variant="h6">
                   Total Amount
                 </Typography>
               </TableCell>
               <TableCell>
-                <Typography color="primary" fontWeight="bold">
+                <Typography color="primary" fontWeight="bold" variant="h6">
                   ₹{calculateEstimateCost()}
                 </Typography>
               </TableCell>
@@ -281,7 +420,12 @@ const UserMemo = () => {
           variant="contained"
           size="large"
           onClick={handlePlaceOrder}
-          disabled={!formData.name || !cart.length}
+          disabled={!formData.name || !formData.mobileNo || !formData.address || !cart.length}
+          sx={{
+            px: 4,
+            py: 1.5,
+            fontSize: "1.1rem",
+          }}
         >
           Place Order
         </Button>
@@ -296,6 +440,22 @@ const UserMemo = () => {
       >
         <ProductPage isAuthenticated />
       </Dialog>
+
+      {/* SNACKBAR FOR NOTIFICATIONS */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

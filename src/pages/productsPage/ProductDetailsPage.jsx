@@ -104,7 +104,7 @@ const ProductDetailsPage = () => {
   const [viewMode, setViewMode] = useState("card"); // 'card' or 'list'
   const ITEMS_PER_PAGE = 8; // Changed to multiple of 4 for better alignment
   const [currentPage, setCurrentPage] = useState(1);
-
+   const [pickedImage, setPickedImage ] = useState("");
   const {
     data: product = { productDetails: {}, variants: [] },
     isLoading,
@@ -126,6 +126,15 @@ const ProductDetailsPage = () => {
     }
   }, [isMobile]);
 
+  useEffect(() => {
+    if (selectedVariant?.imageUrl) {
+      setPickedImage(selectedVariant.imageUrl);
+    } else if (product.productDetails.imageUrl && product.productDetails.imageUrl !== "https://example.com/default-product.jpg") {
+      setPickedImage(product.productDetails.imageUrl);
+    } else {
+      setPickedImage(getDefaultImageForProduct(product._id));
+    }
+  }, [selectedVariant, product.productDetails.imageUrl, product._id]);
   const handlePageChange = (_, value) => {
     setCurrentPage(value);
   };
@@ -225,16 +234,7 @@ const ProductDetailsPage = () => {
       </Container>
     );
   }
-  const [pickedImage, setPickedImage ] = useState("");
-  useEffect(() => {
-    if (selectedVariant?.imageUrl) {
-      setPickedImage(selectedVariant.imageUrl);
-    } else if (product.productDetails.imageUrl && product.productDetails.imageUrl !== "https://example.com/default-product.jpg") {
-      setPickedImage(product.productDetails.imageUrl);
-    } else {
-      setPickedImage(getDefaultImageForProduct(product._id));
-    }
-  }, [selectedVariant, product.productDetails.imageUrl, product._id]);
+ 
 
   const categoryName =
     product.categoryId?.name || product.categoryId?.label || "Uncategorized";
