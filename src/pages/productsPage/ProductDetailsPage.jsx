@@ -233,6 +233,10 @@ const ProductDetailsPage = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3, md: 4 } }}>
+         <IconButton onClick={() => navigate("/products")} sx={{ mr: 1 }} testid="back-button">
+              <ArrowBackIcon />
+            </IconButton>
+            Back To Main Product
       {product.variants && product.variants.length > 0 && (
         <Box sx={{ mt: { xs: 3, sm: 4, md: 5 } }}>
 
@@ -246,9 +250,7 @@ const ProductDetailsPage = () => {
               gap: 2,
             }}
           >
-            <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }} testid="back-button">
-              <Box><ArrowBackIcon onClick={() => navigate(-1)} />Back To Main Product</Box>
-            </IconButton>
+         
 
             {/* View Mode Toggle - Centered on mobile */}
             <Box
