@@ -1,3 +1,5 @@
+//use for the dialog that opens when user clicks on "Add to Memo" for a variant.
+// It shows variant details and allows user to select quantity before adding to memo.
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -77,14 +79,20 @@ const SingleVariantDialog = ({ open, onClose, variant, onAddToCart }) => {
             </Typography>
 
             <Typography variant="body2" color="text.secondary">
-              {variant.description || "No description available"}
+              {variant.variantDescription || "No description available"}
             </Typography>
 
             <Typography
               variant="h6"
               sx={{ color: "primary.main", mt: 1, fontWeight: 700 }}
             >
-              ₹{variant.actualPrice?.toFixed(2)}
+             Invoice Price: ₹{variant.invoicePrice?.toFixed(2)}
+            </Typography>
+            <Typography
+              variant="h6"
+              sx={{ color: "secondary.main", mt: 1, fontWeight: 700 }}
+            >
+             Estimate Price: ₹{variant.estimatePrice?.toFixed(2)}
             </Typography>
 
             <Typography
@@ -123,7 +131,7 @@ const SingleVariantDialog = ({ open, onClose, variant, onAddToCart }) => {
           </Typography>
 
           <Typography variant="h6" sx={{ color: "success.main", fontWeight: 700 }}>
-            ₹{(variant.actualPrice * qty).toFixed(2)}
+            ₹{(variant.invoicePrice * qty).toFixed(2)}
           </Typography>
         </Stack>
       </DialogContent>
