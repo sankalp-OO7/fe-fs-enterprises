@@ -10,22 +10,28 @@ import {
   Grid,
   Box,
   Typography,
-  Switch,
-  FormControlLabel,
-  Divider,
   IconButton,
   Avatar,
   CircularProgress,
-  Tabs,
-  Tab,
-  Paper,
+  Divider,
+  InputAdornment,
+  Alert,
+  Slide,
+  alpha,
 } from '@mui/material';
 import {
   Close,
   CloudUpload,
-  Image as ImageIcon,
   Save,
   Refresh,
+  Inventory,
+  AttachMoney,
+  Percent,
+  Description,
+  BrandingWatermark,
+  QrCode,
+  Error,
+  PhotoCamera,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
@@ -41,6 +47,52 @@ const VisuallyHiddenInput = styled('input')({
   width: 1,
 });
 
+const ImageUploadBox = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: theme.spacing(2),
+  border: `2px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
+  borderRadius: theme.spacing(2),
+  backgroundColor: alpha(theme.palette.primary.main, 0.02),
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  minHeight: 140,
+  '&:hover': {
+    borderColor: theme.palette.primary.main,
+    backgroundColor: alpha(theme.palette.primary.main, 0.05),
+  },
+}));
+
+const SectionHeader = styled(Typography)(({ theme }) => ({
+  fontSize: '0.9rem',
+  fontWeight: 600,
+  color: theme.palette.text.primary,
+  marginBottom: theme.spacing(1),
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(0.5),
+}));
+
+const SectionContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(1),
+  marginBottom: theme.spacing(2),
+}));
+
+const FieldsRow = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: theme.spacing(2),
+  flexDirection: 'row',
+}));
+
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
+
 const VariantFormDialog = memo(({
   open,
   onClose,
@@ -51,60 +103,53 @@ const VariantFormDialog = memo(({
   loading,
 }) => {
   const [formData, setFormData] = useState({});
-  const [activeTab, setActiveTab] = useState(0);
   const [imageUploading, setImageUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [touched, setTouched] = useState({});
 
   // Initialize form data
   useEffect(() => {
     if (variant) {
       setFormData({
-        variantName: variant.variantName || '',
+        name: variant.variantName || '',
         brand: variant.brand || '',
-        variantPrice: variant.variantPrice || 0,
-        actualPrice: variant.actualPrice || variant.variantPrice || 0,
-        stockQty: variant.stockQty || 0,
+        description: variant.varientDescription || '',
+        price: variant.invoicePrice || 0,
+        estimatePrice: variant.estimatePrice || 0,
+        stock: variant.stockQty || 0,
         imageUrl: variant.imageUrl || '',
         hasCustomImage: variant.hasCustomImage || false,
-        
-        // Excel fields
-        itemCode: variant.itemCode || '',
-        spNo: variant.spNo || '',
-        uom: variant.uom || '',
-        defUom: variant.defUom || '',
-        itemOnFlag: variant.itemOnFlag !== undefined ? variant.itemOnFlag : true,
-        rackNo: variant.rackNo || '',
-        opStock: variant.opStock || 0,
-        hsnCode: variant.hsnCode || '',
         gst: variant.gst || 0,
-        stockItem: variant.stockItem || '',
-        itemDisc: variant.itemDisc || '',
-        mrp: variant.mrp || 0,
-        purRate: variant.purRate || 0,
-        invoiceRate: variant.invoiceRate || 0,
-        cashMemoRate: variant.cashMemoRate || 0,
-        estimateRate: variant.estimateRate || 0,
-        cashSalesRate: variant.cashSalesRate || 0,
-        agRate: variant.agRate || 0,
-        invDisc: variant.invDisc || 0,
-        cashMemoDisc: variant.cashMemoDisc || 0,
-        estimateDisc: variant.estimateDisc || 0,
-        agDisc: variant.agDisc || 0,
+        itemCode: variant.itemCode || '',
       });
+      setPreviewImage(variant.imageUrl || productImage);
     }
-  }, [variant]);
+  }, [variant, productImage]);
 
   const handleChange = useCallback((field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Auto-update actualPrice when variantPrice changes
-    if (field === 'variantPrice') {
-      setFormData(prev => ({ ...prev, actualPrice: value }));
-    }
+    setTouched(prev => ({ ...prev, [field]: true }));
   }, []);
 
-  const handleFileUpload = useCallback(async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  const handleNumberChange = useCallback((field, value) => {
+    let parsedValue;
+    if (field === 'stock') {
+      parsedValue = parseInt(value) || 0;
+    } else {
+      parsedValue = parseFloat(value) || 0;
+    }
+    
+    const safeValue = Math.max(0, parsedValue);
+    setFormData(prev => ({ ...prev, [field]: safeValue }));
+    setTouched(prev => ({ ...prev, [field]: true }));
+  }, []);
+
+  const processImageUpload = useCallback(async (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewImage(e.target.result);
+    };
+    reader.readAsDataURL(file);
 
     setImageUploading(true);
     try {
@@ -119,443 +164,305 @@ const VariantFormDialog = memo(({
     }
   }, [onImageUpload, variant?.id, handleChange]);
 
+  const handleFileUpload = useCallback(async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    await processImageUpload(file);
+  }, [processImageUpload]);
+
   const handleResetImage = useCallback(() => {
+    setPreviewImage(productImage);
     handleChange('imageUrl', productImage);
     handleChange('hasCustomImage', false);
   }, [handleChange, productImage]);
 
   const handleSave = useCallback(() => {
-    onSave(formData);
+    // Map back to original field names for API
+    const saveData = {
+      variantName: formData.name,
+      brand: formData.brand,
+      varientDescription: formData.description,
+      invoicePrice: formData.price,
+      estimatePrice: formData.estimatePrice,
+      stockQty: formData.stock,
+      imageUrl: formData.imageUrl,
+      hasCustomImage: formData.hasCustomImage,
+      gst: formData.gst,
+      itemCode: formData.itemCode,
+    };
+    onSave(saveData);
   }, [formData, onSave]);
 
   if (!variant) return null;
 
-  const tabs = [
-    { label: 'Basic Info', value: 0 },
-    { label: 'Pricing', value: 1 },
-    { label: 'Inventory', value: 2 },
-    { label: 'Advanced', value: 3 },
-  ];
+  const isFormValid = formData.name?.trim() && formData.brand?.trim();
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
       fullWidth
-      scroll="paper"
+      TransitionComponent={Transition}
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          maxHeight: '90vh',
+        }
+      }}
     >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6" fontWeight="bold">
-          Edit Variant: {variant.variantName}
-        </Typography>
+      <DialogTitle sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        py: 2,
+        px: 3,
+        borderBottom: (theme) => `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+      }}>
+        <Box>
+          <Typography variant="h6" fontWeight="bold">
+            Edit Variant : {variant.variantName}
+
+          </Typography>
+       
+        </Box>
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent dividers>
-        {/* Image Section */}
-        <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Avatar
-            src={formData.imageUrl || productImage || '/placeholder-image.jpg'}
-            variant="rounded"
-            sx={{
-              width: 120,
-              height: 120,
-              mx: 'auto',
-              mb: 2,
-              border: '2px solid',
-              borderColor: formData.hasCustomImage ? 'primary.main' : 'grey.300',
-            }}
-          />
+      <DialogContent sx={{ p: 3 }}>
+        {/* Image Upload Section */}
+        <Grid container spacing={3} sx={{ mb: 1,mt: 1 ,justifyContent: 'center', alignItems: 'center' ,gap: 2}}>
+          <Grid item xs={12} sm={4}>
+            <Avatar
+              src={previewImage || '/placeholder-image.jpg'}
+              variant="rounded"
+              sx={{
+                width: '100%',
+                height: 'auto',
+                aspectRatio: '1/1',
+                maxWidth: 140,
+                border: '2px solid',
+                borderColor: formData.hasCustomImage ? 'primary.main' : 'divider',
+              }}
+            />
+          </Grid>
           
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mb: 2 }}>
-            <Button
-              component="label"
-              variant="outlined"
-              startIcon={imageUploading ? <CircularProgress size={20} /> : <CloudUpload />}
-              disabled={imageUploading}
-              size="small"
-            >
-              Upload Custom Image
-              <VisuallyHiddenInput
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-              />
-            </Button>
+          <Grid item xs={12} sm={8}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+              id="image-upload-input"
+            />
             
+            <label htmlFor="image-upload-input" style={{ width: '100%' }}>
+              <ImageUploadBox>
+                {imageUploading ? (
+                  <Box sx={{ textAlign: 'center' }}>
+                    <CircularProgress size={30} />
+                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                      Uploading...
+                    </Typography>
+                  </Box>
+                ) : (
+                  <>
+                    <PhotoCamera sx={{ fontSize: 30, color: 'primary.main', mb: 1 }} />
+                    <Typography variant="body2" fontWeight="500">
+                      Click to upload
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" align="center">
+                      JPG, PNG, GIF (Max 5MB)
+                    </Typography>
+                  </>
+                )}
+              </ImageUploadBox>
+            </label>
+
             {formData.hasCustomImage && (
               <Button
-                variant="outlined"
+                fullWidth
+                variant="text"
                 startIcon={<Refresh />}
                 onClick={handleResetImage}
                 size="small"
-                color="secondary"
+                sx={{ mt: 1 }}
               >
-                Reset to Product Image
+                Reset
               </Button>
             )}
-          </Box>
-          
-          <Typography variant="caption" color="text.secondary">
-            {formData.hasCustomImage ? 'Using custom image' : 'Inheriting product image'}
-          </Typography>
+          </Grid>
+        </Grid>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Form Sections */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {/* Basic Information Section */}
+          <SectionContainer>
+            <SectionHeader>
+              <Description fontSize="small" /> Basic Information
+            </SectionHeader>
+            
+            <FieldsRow>
+              <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
+                <TextField
+                  fullWidth
+                  label="Name *"
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  size="small"
+                  error={touched.name && !formData.name}
+                  helperText={touched.name && !formData.name ? 'Required' : ''}
+                />
+              </Box>
+              
+              <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
+                <TextField
+                  fullWidth
+                  label="Brand *"
+                  value={formData.brand}
+                  onChange={(e) => handleChange('brand', e.target.value)}
+                  size="small"
+                  error={touched.brand && !formData.brand}
+                  helperText={touched.brand && !formData.brand ? 'Required' : ''}
+                />
+              </Box>
+              
+              <Box sx={{ flex: '1 1 100%' }}>
+                <TextField
+                  fullWidth
+                  label="Description"
+                  value={formData.description}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  multiline
+                  rows={2}
+                  size="small"
+                  placeholder="Enter description..."
+                />
+              </Box>
+            </FieldsRow>
+          </SectionContainer>
+
+          {/* Pricing Section */}
+          <SectionContainer>
+            <SectionHeader>
+              <AttachMoney fontSize="small" /> Pricing
+            </SectionHeader>
+            
+            <FieldsRow>
+              <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
+                <TextField
+                  fullWidth
+                  label="Price *"
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => handleNumberChange('price', e.target.value)}
+                  size="small"
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                    inputProps: { min: 0, step: "0.01" }
+                  }}
+                />
+              </Box>
+              
+              <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
+                <TextField
+                  fullWidth
+                  label="Est. Price"
+                  type="number"
+                  value={formData.estimatePrice}
+                  onChange={(e) => handleNumberChange('estimatePrice', e.target.value)}
+                  size="small"
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                    inputProps: { min: 0, step: "0.01" }
+                  }}
+                />
+              </Box>
+            </FieldsRow>
+          </SectionContainer>
+
+          {/* Stock & Additional Info Section */}
+          <SectionContainer>
+            <SectionHeader>
+              <Inventory fontSize="small" /> Stock & More
+            </SectionHeader>
+            
+            <FieldsRow>
+              <Box sx={{ flex: '1 1 calc(33.333% - 11px)', minWidth: '200px' }}>
+                <TextField
+                  fullWidth
+                  label="Stock *"
+                  type="number"
+                  value={formData.stock}
+                  onChange={(e) => handleNumberChange('stock', e.target.value)}
+                  size="small"
+                  InputProps={{
+                    inputProps: { min: 0, step: "1" }
+                  }}
+                />
+              </Box>
+              
+              <Box sx={{ flex: '1 1 calc(33.333% - 11px)', minWidth: '200px' }}>
+                <TextField
+                  fullWidth
+                  label="GST %"
+                  type="number"
+                  value={formData.gst}
+                  onChange={(e) => handleNumberChange('gst', e.target.value)}
+                  size="small"
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                    inputProps: { min: 0, max: 100, step: "0.01" }
+                  }}
+                />
+              </Box>
+              
+              <Box sx={{ flex: '1 1 calc(33.333% - 11px)', minWidth: '200px' }}>
+                <TextField
+                  fullWidth
+                  label="Item Code"
+                  value={formData.itemCode}
+                  onChange={(e) => handleChange('itemCode', e.target.value)}
+                  size="small"
+                />
+              </Box>
+            </FieldsRow>
+          </SectionContainer>
         </Box>
 
-        {/* Tabs */}
-        <Paper sx={{ mb: 3, borderRadius: 1 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(_, newValue) => setActiveTab(newValue)}
-            variant="scrollable"
-            scrollButtons="auto"
+        {/* Validation Alert */}
+        {!isFormValid && (
+          <Alert 
+            severity="warning" 
+            icon={<Error />}
+            sx={{ mt: 1, borderRadius: 2 }}
+            size="small"
           >
-            {tabs.map(tab => (
-              <Tab key={tab.value} label={tab.label} />
-            ))}
-          </Tabs>
-        </Paper>
-
-        {/* Basic Info Tab */}
-        {activeTab === 0 && (
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Variant Name *"
-                value={formData.variantName}
-                onChange={(e) => handleChange('variantName', e.target.value)}
-                required
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Brand *"
-                value={formData.brand}
-                onChange={(e) => handleChange('brand', e.target.value)}
-                required
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="UOM (Unit of Measure)"
-                value={formData.uom}
-                onChange={(e) => handleChange('uom', e.target.value)}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Default UOM"
-                value={formData.defUom}
-                onChange={(e) => handleChange('defUom', e.target.value)}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.itemOnFlag}
-                    onChange={(e) => handleChange('itemOnFlag', e.target.checked)}
-                  />
-                }
-                label="Active Item"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Stock Item Status"
-                value={formData.stockItem}
-                onChange={(e) => handleChange('stockItem', e.target.value)}
-                size="small"
-              />
-            </Grid>
-          </Grid>
-        )}
-
-        {/* Pricing Tab */}
-        {activeTab === 1 && (
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Variant Price *"
-                type="number"
-                value={formData.variantPrice}
-                onChange={(e) => handleChange('variantPrice', parseFloat(e.target.value) || 0)}
-                required
-                size="small"
-                InputProps={{ startAdornment: '₹' }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Actual Price"
-                type="number"
-                value={formData.actualPrice}
-                onChange={(e) => handleChange('actualPrice', parseFloat(e.target.value) || 0)}
-                size="small"
-                InputProps={{ startAdornment: '₹' }}
-                disabled
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="MRP"
-                type="number"
-                value={formData.mrp}
-                onChange={(e) => handleChange('mrp', parseFloat(e.target.value) || 0)}
-                size="small"
-                InputProps={{ startAdornment: '₹' }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Purchase Rate"
-                type="number"
-                value={formData.purRate}
-                onChange={(e) => handleChange('purRate', parseFloat(e.target.value) || 0)}
-                size="small"
-                InputProps={{ startAdornment: '₹' }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Invoice Rate"
-                type="number"
-                value={formData.invoiceRate}
-                onChange={(e) => handleChange('invoiceRate', parseFloat(e.target.value) || 0)}
-                size="small"
-                InputProps={{ startAdornment: '₹' }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Cash Memo Rate"
-                type="number"
-                value={formData.cashMemoRate}
-                onChange={(e) => handleChange('cashMemoRate', parseFloat(e.target.value) || 0)}
-                size="small"
-                InputProps={{ startAdornment: '₹' }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Estimate Rate"
-                type="number"
-                value={formData.estimateRate}
-                onChange={(e) => handleChange('estimateRate', parseFloat(e.target.value) || 0)}
-                size="small"
-                InputProps={{ startAdornment: '₹' }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Cash Sales Rate"
-                type="number"
-                value={formData.cashSalesRate}
-                onChange={(e) => handleChange('cashSalesRate', parseFloat(e.target.value) || 0)}
-                size="small"
-                InputProps={{ startAdornment: '₹' }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="AG Rate"
-                type="number"
-                value={formData.agRate}
-                onChange={(e) => handleChange('agRate', parseFloat(e.target.value) || 0)}
-                size="small"
-                InputProps={{ startAdornment: '₹' }}
-              />
-            </Grid>
-          </Grid>
-        )}
-
-        {/* Inventory Tab */}
-        {activeTab === 2 && (
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Stock Quantity *"
-                type="number"
-                value={formData.stockQty}
-                onChange={(e) => handleChange('stockQty', parseInt(e.target.value) || 0)}
-                required
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Opening Stock"
-                type="number"
-                value={formData.opStock}
-                onChange={(e) => handleChange('opStock', parseInt(e.target.value) || 0)}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Rack Number"
-                value={formData.rackNo}
-                onChange={(e) => handleChange('rackNo', e.target.value)}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Item Code"
-                type="number"
-                value={formData.itemCode}
-                onChange={(e) => handleChange('itemCode', parseInt(e.target.value) || '')}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="SP Number"
-                type="number"
-                value={formData.spNo}
-                onChange={(e) => handleChange('spNo', parseInt(e.target.value) || '')}
-                size="small"
-              />
-            </Grid>
-          </Grid>
-        )}
-
-        {/* Advanced Tab */}
-        {activeTab === 3 && (
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="HSN Code"
-                type="number"
-                value={formData.hsnCode}
-                onChange={(e) => handleChange('hsnCode', parseInt(e.target.value) || '')}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="GST %"
-                type="number"
-                value={formData.gst}
-                onChange={(e) => handleChange('gst', parseFloat(e.target.value) || 0)}
-                size="small"
-                InputProps={{ endAdornment: '%' }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Item Discount"
-                value={formData.itemDisc}
-                onChange={(e) => handleChange('itemDisc', e.target.value)}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Invoice Discount %"
-                type="number"
-                value={formData.invDisc}
-                onChange={(e) => handleChange('invDisc', parseFloat(e.target.value) || 0)}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Cash Memo Discount %"
-                type="number"
-                value={formData.cashMemoDisc}
-                onChange={(e) => handleChange('cashMemoDisc', parseFloat(e.target.value) || 0)}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Estimate Discount %"
-                type="number"
-                value={formData.estimateDisc}
-                onChange={(e) => handleChange('estimateDisc', parseFloat(e.target.value) || 0)}
-                size="small"
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="AG Discount %"
-                type="number"
-                value={formData.agDisc}
-                onChange={(e) => handleChange('agDisc', parseFloat(e.target.value) || 0)}
-                size="small"
-              />
-            </Grid>
-          </Grid>
+            Please fill in all required fields (*)
+          </Alert>
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="outlined">
+      <DialogActions sx={{ 
+        px: 3, 
+        py: 2,
+        borderTop: (theme) => `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+      }}>
+        <Button onClick={onClose} variant="outlined" size="medium">
           Cancel
         </Button>
         <Button
           onClick={handleSave}
           variant="contained"
-          startIcon={loading ? <CircularProgress size={20} /> : <Save />}
-          disabled={loading || !formData.variantName || !formData.brand}
+          startIcon={loading ? <CircularProgress size={18} /> : <Save />}
+          disabled={loading || !isFormValid}
+          size="medium"
         >
-          Save Changes
+          {loading ? 'Saving...' : 'Save Changes'}
         </Button>
       </DialogActions>
     </Dialog>
