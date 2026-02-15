@@ -40,10 +40,8 @@ const VisuallyHiddenInput = styled('input')({
 const VariantRow = memo(({
   variant,
   isSelected,
-  isExpanded,
   productImage,
   onSelect,
-  onToggleExpand,
   onImagePreview,
   onEdit,
   onDuplicate,
@@ -72,12 +70,6 @@ const VariantRow = memo(({
       {/* Variant Name & Basic Info */}
       <TableCell>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton
-            size="small"
-            onClick={onToggleExpand}
-          >
-            {isExpanded ? <ExpandLess /> : <ExpandMore />}
-          </IconButton>
           
           <Box>
             <Typography variant="subtitle2" fontWeight="bold">
@@ -91,21 +83,7 @@ const VariantRow = memo(({
                   variant="outlined" 
                 />
               )}
-              {variant.spNo && (
-                <Chip 
-                  label={`SP: ${variant.spNo}`} 
-                  size="small" 
-                  variant="outlined" 
-                />
-              )}
-              {!variant.itemOnFlag && (
-                <Chip 
-                  label="Inactive" 
-                  size="small" 
-                  color="default" 
-                  variant="outlined"
-                />
-              )}
+
             </Box>
           </Box>
         </Box>
@@ -126,9 +104,9 @@ const VariantRow = memo(({
       <TableCell>
         <Box>
           <Typography variant="body2" fontWeight="bold" color="success.main">
-            ₹{variant.variantPrice?.toFixed(2) || '0.00'}
+            ₹{variant.invoicePrice?.toFixed(2) || '0.00'}
           </Typography>
-          {variant.mrp > 0 && variant.mrp > variant.variantPrice && (
+          {variant.mrp > 0 && variant.mrp > variant.invoicePrice && (
             <Typography variant="caption" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
               MRP: ₹{variant.mrp.toFixed(2)}
             </Typography>
@@ -136,27 +114,18 @@ const VariantRow = memo(({
         </Box>
       </TableCell>
       
-      {/* Stock */}
+      {/* estimate price */}
       <TableCell>
         <Box>
           <Badge 
-            badgeContent={variant.stockQty || 0} 
-            color={
-              variant.stockQty > 50 ? "success" : 
-              variant.stockQty > 10 ? "warning" : 
-              "error"
-            }
+            badgeContent={variant.estimatePrice || 0} 
+              color={variant.estimatePrice > 0 ? 'success' : 'error'}
             sx={{ '& .MuiBadge-badge': { fontSize: '0.75rem' } }}
           >
             <Typography variant="body2">
-              {variant.stockQty > 0 ? 'In Stock' : 'Out of Stock'}
+              ₹{variant.estimatePrice?.toFixed(2) || '0.00'}
             </Typography>
           </Badge>
-          {variant.rackNo && (
-            <Typography variant="caption" display="block" color="text.secondary">
-              Rack: {variant.rackNo}
-            </Typography>
-          )}
         </Box>
       </TableCell>
       

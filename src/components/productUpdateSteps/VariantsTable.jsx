@@ -34,7 +34,6 @@ import {
   Inventory2,
 } from '@mui/icons-material';
 import VariantRow from './VariantRow';
-import VariantExpandedRow from './VariantExpandedRow';
 import { styled } from '@mui/material/styles';
 
 const VisuallyHiddenInput = styled('input')({
@@ -101,7 +100,7 @@ const handleRemoveVariant = useCallback((variantId) => {
     onResetVariantImage(updatedVariants);
   }, [variants, productData.imageUrl, onResetVariantImage]);
 
-  const handleDuplicateVariant = useCallback((variant) => {
+ const handleDuplicateVariant = useCallback((variant) => {
     const newVariant = {
       ...variant,
       id: `copy-${Date.now()}`,
@@ -143,7 +142,7 @@ const handleRemoveVariant = useCallback((variantId) => {
       </Paper>
     );
   }
-
+  console.log('Rendering VariantsTable with variants:', variants);
   return (
     <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
       <Table>
@@ -159,7 +158,7 @@ const handleRemoveVariant = useCallback((variantId) => {
             <TableCell width="300">Variant Details</TableCell>
             <TableCell>Brand</TableCell>
             <TableCell>Price</TableCell>
-            <TableCell>Stock</TableCell>
+            <TableCell>Estimate Cost</TableCell>
             <TableCell width="150">Image</TableCell>
             <TableCell align="right" width="200">Actions</TableCell>
           </TableRow>
@@ -170,10 +169,8 @@ const handleRemoveVariant = useCallback((variantId) => {
               <VariantRow
                 variant={variant}
                 isSelected={selectedVariants.includes(variant.id)}
-                isExpanded={expandedVariants.includes(variant.id)}
                 productImage={productData.imageUrl}
                 onSelect={() => onSelectVariant(variant.id)}
-                onToggleExpand={() => handleToggleExpand(variant.id)}
                 onImagePreview={() => onImagePreview(variant.imageUrl || productData.imageUrl)}
                 onEdit={() => onOpenVariantForm(variant)}
                 onDuplicate={() => handleDuplicateVariant(variant)}
@@ -181,12 +178,6 @@ const handleRemoveVariant = useCallback((variantId) => {
                 onFileUpload={(e) => handleFileUpload(e, variant.id)}
                 onResetImage={() => handleResetVariantImage(variant.id)}
                 imageUploading={imageUploading}
-              />
-              
-              <VariantExpandedRow
-                variant={variant}
-                isExpanded={expandedVariants.includes(variant.id)}
-                onEdit={() => onOpenVariantForm(variant)}
               />
             </React.Fragment>
           ))}

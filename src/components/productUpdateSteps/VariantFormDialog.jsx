@@ -107,16 +107,16 @@ const VariantFormDialog = memo(({
   const [previewImage, setPreviewImage] = useState(null);
   const [touched, setTouched] = useState({});
 
-  // Initialize form data
+  // Initialize form data - UPDATED field names to match schema
   useEffect(() => {
     if (variant) {
       setFormData({
-        name: variant.variantName || '',
-        brand: variant.brand || '',
-        description: variant.varientDescription || '',
-        price: variant.invoicePrice || 0,
+        variantName: variant.variantName || '',
+        brand: variant.brand || 'Others', // Default to "Others" as per schema
+        variantDescription: variant.variantDescription || variant.varientDescription || '', // Handle both spellings
+        invoicePrice: variant.invoicePrice || 0,
         estimatePrice: variant.estimatePrice || 0,
-        stock: variant.stockQty || 0,
+        stockQty: variant.stockQty || 0,
         imageUrl: variant.imageUrl || '',
         hasCustomImage: variant.hasCustomImage || false,
         gst: variant.gst || 0,
@@ -133,7 +133,7 @@ const VariantFormDialog = memo(({
 
   const handleNumberChange = useCallback((field, value) => {
     let parsedValue;
-    if (field === 'stock') {
+    if (field === 'stockQty') {
       parsedValue = parseInt(value) || 0;
     } else {
       parsedValue = parseFloat(value) || 0;
@@ -177,25 +177,31 @@ const VariantFormDialog = memo(({
   }, [handleChange, productImage]);
 
   const handleSave = useCallback(() => {
-    // Map back to original field names for API
+    // Map to schema field names - UPDATED to match backend
     const saveData = {
-      variantName: formData.name,
-      brand: formData.brand,
-      varientDescription: formData.description,
-      invoicePrice: formData.price,
+      variantName: formData.variantName,
+      brand: formData.brand || 'Others', // Ensure brand has default
+      variantDescription: formData.variantDescription,
+      invoicePrice: formData.invoicePrice,
       estimatePrice: formData.estimatePrice,
-      stockQty: formData.stock,
+      stockQty: formData.stockQty,
       imageUrl: formData.imageUrl,
       hasCustomImage: formData.hasCustomImage,
       gst: formData.gst,
-      itemCode: formData.itemCode,
+      itemCode: formData.itemCode ? parseInt(formData.itemCode) : undefined, // Convert to number as per schema
     };
+    
+    // Remove undefined fields
+    Object.keys(saveData).forEach(key => 
+      saveData[key] === undefined && delete saveData[key]
+    );
+    
     onSave(saveData);
   }, [formData, onSave]);
 
   if (!variant) return null;
 
-  const isFormValid = formData.name?.trim() && formData.brand?.trim();
+  const isFormValid = formData.variantName?.trim() && formData.brand?.trim();
 
   return (
     <Dialog
@@ -222,9 +228,7 @@ const VariantFormDialog = memo(({
         <Box>
           <Typography variant="h6" fontWeight="bold">
             Edit Variant : {variant.variantName}
-
           </Typography>
-       
         </Box>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -233,7 +237,7 @@ const VariantFormDialog = memo(({
 
       <DialogContent sx={{ p: 3 }}>
         {/* Image Upload Section */}
-        <Grid container spacing={3} sx={{ mb: 1,mt: 1 ,justifyContent: 'center', alignItems: 'center' ,gap: 2}}>
+        <Grid container spacing={3} sx={{ mb: 1, mt: 1, justifyContent: 'center', alignItems: 'center', gap: 2 }}>
           <Grid item xs={12} sm={4}>
             <Avatar
               src={previewImage || '/placeholder-image.jpg'}
@@ -310,24 +314,24 @@ const VariantFormDialog = memo(({
               <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
                 <TextField
                   fullWidth
-                  label="Name *"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
+                  label="Variant Name *"
+                  value={formData.variantName}
+                  onChange={(e) => handleChange('variantName', e.target.value)}
                   size="small"
-                  error={touched.name && !formData.name}
-                  helperText={touched.name && !formData.name ? 'Required' : ''}
+                  error={touched.variantName && !formData.variantName}
+                  helperText={touched.variantName && !formData.variantName ? 'Required' : ''}
                 />
               </Box>
               
               <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
                 <TextField
                   fullWidth
-                  label="Brand *"
+                  label="Brand"
                   value={formData.brand}
                   onChange={(e) => handleChange('brand', e.target.value)}
                   size="small"
-                  error={touched.brand && !formData.brand}
-                  helperText={touched.brand && !formData.brand ? 'Required' : ''}
+                  placeholder="Others"
+                  helperText="Defaults to 'Others' if not specified"
                 />
               </Box>
               
@@ -335,18 +339,18 @@ const VariantFormDialog = memo(({
                 <TextField
                   fullWidth
                   label="Description"
-                  value={formData.description}
-                  onChange={(e) => handleChange('description', e.target.value)}
+                  value={formData.variantDescription}
+                  onChange={(e) => handleChange('variantDescription', e.target.value)}
                   multiline
                   rows={2}
                   size="small"
-                  placeholder="Enter description..."
+                  placeholder="Enter variant description..."
                 />
               </Box>
             </FieldsRow>
           </SectionContainer>
 
-          {/* Pricing Section */}
+          {/* Pricing Section - UPDATED field names */}
           <SectionContainer>
             <SectionHeader>
               <AttachMoney fontSize="small" /> Pricing
@@ -356,10 +360,10 @@ const VariantFormDialog = memo(({
               <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
                 <TextField
                   fullWidth
-                  label="Price *"
+                  label="Invoice Price *"
                   type="number"
-                  value={formData.price}
-                  onChange={(e) => handleNumberChange('price', e.target.value)}
+                  value={formData.invoicePrice}
+                  onChange={(e) => handleNumberChange('invoicePrice', e.target.value)}
                   size="small"
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₹</InputAdornment>,
@@ -371,7 +375,7 @@ const VariantFormDialog = memo(({
               <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
                 <TextField
                   fullWidth
-                  label="Est. Price"
+                  label="Estimate Price *"
                   type="number"
                   value={formData.estimatePrice}
                   onChange={(e) => handleNumberChange('estimatePrice', e.target.value)}
@@ -385,7 +389,7 @@ const VariantFormDialog = memo(({
             </FieldsRow>
           </SectionContainer>
 
-          {/* Stock & Additional Info Section */}
+          {/* Stock & Additional Info Section - UPDATED field names */}
           <SectionContainer>
             <SectionHeader>
               <Inventory fontSize="small" /> Stock & More
@@ -395,10 +399,10 @@ const VariantFormDialog = memo(({
               <Box sx={{ flex: '1 1 calc(33.333% - 11px)', minWidth: '200px' }}>
                 <TextField
                   fullWidth
-                  label="Stock *"
+                  label="Stock Quantity *"
                   type="number"
-                  value={formData.stock}
-                  onChange={(e) => handleNumberChange('stock', e.target.value)}
+                  value={formData.stockQty}
+                  onChange={(e) => handleNumberChange('stockQty', e.target.value)}
                   size="small"
                   InputProps={{
                     inputProps: { min: 0, step: "1" }
@@ -425,9 +429,11 @@ const VariantFormDialog = memo(({
                 <TextField
                   fullWidth
                   label="Item Code"
+                  type="number"
                   value={formData.itemCode}
-                  onChange={(e) => handleChange('itemCode', e.target.value)}
+                  onChange={(e) => handleNumberChange('itemCode', e.target.value)}
                   size="small"
+                  helperText="Unique identifier (auto-generated if empty)"
                 />
               </Box>
             </FieldsRow>

@@ -87,21 +87,8 @@ const VariantsManagementPage = memo(
           (v) =>
             v.variantName?.toLowerCase().includes(term) ||
             v.brand?.toLowerCase().includes(term) ||
-            v.itemCode?.toString().includes(term) ||
-            v.rackNo?.toLowerCase().includes(term) ||
-            v.spNo?.toString().includes(term),
+            v.itemCode?.toString().includes(term) 
         );
-      }
-
-      // Status filter
-      if (filterBy === "active") {
-        filtered = filtered.filter((v) => v.itemOnFlag);
-      } else if (filterBy === "inactive") {
-        filtered = filtered.filter((v) => !v.itemOnFlag);
-      } else if (filterBy === "customImage") {
-        filtered = filtered.filter((v) => v.hasCustomImage);
-      } else if (filterBy === "noStock") {
-        filtered = filtered.filter((v) => !v.stockQty || v.stockQty <= 0);
       }
 
       // Sorting
@@ -110,7 +97,7 @@ const VariantsManagementPage = memo(
           case "name":
             return (a.variantName || "").localeCompare(b.variantName || "");
           case "price":
-            return (b.variantPrice || 0) - (a.variantPrice || 0);
+            return (b.invoicePrice || 0) - (a.invoicePrice || 0);
           case "stock":
             return (b.stockQty || 0) - (a.stockQty || 0);
           case "recent":
@@ -130,34 +117,14 @@ const VariantsManagementPage = memo(
         id: variantId, // Temporary ID for frontend tracking
         variantName: "New Variant",
         brand: "",
-        variantPrice: 0,
-        actualPrice: 0,
+        variantDescription: "",
+        invoicePrice: 0,
+        estimatePrice: 0,
         stockQty: 0,
         imageUrl: productData.imageUrl,
         hasCustomImage: false,
         isNew: true, // Flag to indicate this is new
         itemCode: "",
-        spNo: "",
-        uom: "Piece",
-        defUom: "Piece",
-        itemOnFlag: true,
-        rackNo: "",
-        opStock: 0,
-        hsnCode: "",
-        gst: 0,
-        stockItem: "Yes",
-        itemDisc: "",
-        mrp: 0,
-        purRate: 0,
-        invoiceRate: 0,
-        cashMemoRate: 0,
-        estimateRate: 0,
-        cashSalesRate: 0,
-        agRate: 0,
-        invDisc: 0,
-        cashMemoDisc: 0,
-        estimateDisc: 0,
-        agDisc: 0,
       };
       setSelectedVariantForForm(newVariantData);
       setVariantFormOpen(true);
