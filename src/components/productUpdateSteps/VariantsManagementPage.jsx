@@ -87,7 +87,7 @@ const VariantsManagementPage = memo(
           (v) =>
             v.variantName?.toLowerCase().includes(term) ||
             v.brand?.toLowerCase().includes(term) ||
-            v.itemCode?.toString().includes(term) 
+            v.itemCode?.toString().includes(term),
         );
       }
 
@@ -110,6 +110,7 @@ const VariantsManagementPage = memo(
       return filtered;
     }, [variants, searchTerm, sortBy, filterBy]);
 
+    console.log("Rendering VariantsManagementPage with variants:", variants);
     // Handlers
     const handleAddVariant = useCallback(() => {
       const variantId = `new-${Date.now()}`;
@@ -132,22 +133,31 @@ const VariantsManagementPage = memo(
 
     const handleSaveVariantForm = useCallback(
       (formData) => {
+        console.log("Saving variant form data:", formData);
         if (selectedVariantForForm?.isNew) {
-          // Add new variant
-          const updatedVariants = [
-            ...variants,
-            { ...formData, id: selectedVariantForForm.id },
-          ];
-          onUpdate(updatedVariants);
+          const newVariant = {
+            ...formData,
+            id: selectedVariantForForm.id,
+            isNew: true,
+          };
+
+          onUpdate([...variants, newVariant]);
         } else {
-          // Update existing variant
-          const updatedVariants = variants.map((variant) =>
-            variant.id === selectedVariantForForm.id
-              ? { ...variant, ...formData }
-              : variant,
-          );
+          const updatedVariants = variants.map((variant) => {
+            const variantKey = variant.id || variant._id;
+            const selectedKey =
+              selectedVariantForForm.id || selectedVariantForForm._id;
+
+            if (variantKey === selectedKey) {
+              return { ...variant, ...formData };
+            }
+
+            return variant;
+          });
+
           onUpdate(updatedVariants);
         }
+
         setVariantFormOpen(false);
         setSelectedVariantForForm(null);
       },
@@ -170,16 +180,46 @@ const VariantsManagementPage = memo(
       setBulkEditValue("");
       setSelectedVariants([]);
     }, [variants, selectedVariants, bulkEditField, bulkEditValue, onUpdate]);
+    const validateVariants = useCallback(() => {
+      const errors = [];
+
+      // Check for duplicate itemCodes
+      const itemCodes = variants
+        .map((v) => v.itemCode)
+        .filter((code) => code && code !== "");
+      const duplicateCodes = itemCodes.filter(
+        (code, index) => itemCodes.indexOf(code) !== index,
+      );
+
+      if (duplicateCodes.length > 0) {
+        errors.push(
+          `Duplicate item codes found: ${[...new Set(duplicateCodes)].join(", ")}`,
+        );
+      }
+
+      // Check for empty required fields
+      variants.forEach((v, index) => {
+        if (!v.variantName) {
+          errors.push(`Variant at position ${index + 1} has no name`);
+        }
+      });
+
+      return errors;
+    }, [variants]);
 
     const handleSaveAndExit = useCallback(
       async (includeProduct = false) => {
+        const errors = validateVariants();
+        if (errors.length > 0) {
+          alert(`Cannot save: \n${errors.join("\n")}`);
+          return;
+        }
+
         await onSave(includeProduct);
-        // Navigate after successful save
         setTimeout(() => navigate(-1), 1000);
       },
-      [onSave, navigate],
+      [onSave, navigate, validateVariants],
     );
-
     return (
       <Box>
         {/* Header Section */}
@@ -415,12 +455,25 @@ const VariantsManagementPage = memo(
               )
             }
             onDuplicateVariant={(variant) => {
+              console.log("Duplicating variant:", variant);
+
+              // Create a new variant with unique values
               const newVariant = {
                 ...variant,
-                id: `copy-${Date.now()}`,
-                variantName: `${variant.variantName} (Copy)`,
+                id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`, // Unique ID
+                _id: undefined, // Remove MongoDB ID
+                variantName: `${variant.variantName || "Variant"} (Copy)`,
+                itemCode: "", // IMPORTANT: Clear itemCode to avoid duplicate key error
                 isNew: true,
+                hasCustomImage: false,
+                // Reset other unique fields
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               };
+
+              // Remove any fields that shouldn't be copied
+              delete newVariant.__v; // Remove Mongoose version key if present
+
               onUpdate([...variants, newVariant]);
             }}
             onFileUpload={onImageUpload}
@@ -457,17 +510,6 @@ const VariantsManagementPage = memo(
               >
                 Cancel
               </Button>
-
-              {/* <Button
-              onClick={() => onSave(false)}
-              variant="contained"
-              startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
-              disabled={isSaving}
-              color="primary"
-            >
-              Save Variants Only
-            </Button>
-             */}
               <Button
                 onClick={() => handleSaveAndExit(true)}
                 variant="contained"

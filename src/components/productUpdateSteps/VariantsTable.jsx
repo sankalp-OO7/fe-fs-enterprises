@@ -64,15 +64,7 @@ const VariantsTable = memo(({
   onImagePreview,
   imageUploading,
 }) => {
-  const [expandedVariants, setExpandedVariants] = useState([]);
 
-  const handleToggleExpand = useCallback((variantId) => {
-    setExpandedVariants(prev => 
-      prev.includes(variantId)
-        ? prev.filter(id => id !== variantId)
-        : [...prev, variantId]
-    );
-  }, []);
 
 const handleRemoveVariant = useCallback((variantId) => {
   onRemoveVariant(variantId);
@@ -80,7 +72,7 @@ const handleRemoveVariant = useCallback((variantId) => {
 
   const handleVariantChange = useCallback((variantId, field, value) => {
     const updatedVariants = variants.map(variant => 
-      variant.id === variantId 
+      variant.id === variantId || variant._id === variantId
         ? { ...variant, [field]: value }
         : variant
     );
@@ -100,17 +92,22 @@ const handleRemoveVariant = useCallback((variantId) => {
     onResetVariantImage(updatedVariants);
   }, [variants, productData.imageUrl, onResetVariantImage]);
 
- const handleDuplicateVariant = useCallback((variant) => {
-    const newVariant = {
-      ...variant,
-      id: `copy-${Date.now()}`,
-      _id: `copy-${Date.now()}`,
-      variantName: `${variant.variantName} (Copy)`,
-      isNew: true,
-    };
-    const updatedVariants = [...variants, newVariant];
-    onDuplicateVariant(updatedVariants);
-  }, [variants, onDuplicateVariant]);
+const handleDuplicateVariant = useCallback((variant) => {
+  console.log("Table: Duplicating variant", variant);
+  
+  // Create a clean copy without the original _id
+  const variantCopy = {
+    ...variant,
+    id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    _id: undefined, // Remove MongoDB ID
+    variantName: `${variant.variantName || 'Variant'} (Copy)`,
+    itemCode: "", // Clear itemCode
+    isNew: true,
+  };
+  
+  // Call the parent's handler with the clean copy
+  onDuplicateVariant(variantCopy);
+}, [onDuplicateVariant]);
 
   const handleFileUpload = useCallback(async (event, variantId) => {
     const file = event.target.files[0];
@@ -165,16 +162,16 @@ const handleRemoveVariant = useCallback((variantId) => {
         </TableHead>
         <TableBody>
           {variants.map((variant) => (
-            <React.Fragment key={variant.id}>
+            <React.Fragment key={variant.id || variant._id}>
               <VariantRow
                 variant={variant}
                 isSelected={selectedVariants.includes(variant.id)}
                 productImage={productData.imageUrl}
-                onSelect={() => onSelectVariant(variant.id)}
+                onSelect={() => onSelectVariant(variant.id || variant._id)}
                 onImagePreview={() => onImagePreview(variant.imageUrl || productData.imageUrl)}
                 onEdit={() => onOpenVariantForm(variant)}
                 onDuplicate={() => handleDuplicateVariant(variant)}
-               onRemove={() => handleRemoveVariant(variant.id)}
+             onRemove={() => handleRemoveVariant(variant.id || variant._id)}
                 onFileUpload={(e) => handleFileUpload(e, variant.id)}
                 onResetImage={() => handleResetVariantImage(variant.id)}
                 imageUploading={imageUploading}

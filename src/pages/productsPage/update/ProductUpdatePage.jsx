@@ -267,7 +267,7 @@ const ProductUpdatePage = () => {
   useEffect(() => {
     if (productResponse && !productData) {
       const { productDetails, variants: fetchedVariants } = productResponse;
-
+      
       setProductData({
         productName: productDetails.productName || "",
         description: productDetails.description || "",
@@ -276,10 +276,10 @@ const ProductUpdatePage = () => {
         imageUrl: productDetails.imageUrl || "",
         originalData: productDetails,
       });
-
+      console.log("Processing fetched variants:", fetchedVariants);
       if (fetchedVariants && Array.isArray(fetchedVariants)) {
         const processedVariants = fetchedVariants.map((variant) => ({
-          id: variant._id, // MongoDB _id
+          id: variant.id || variant._id, 
           variantName: variant.variantName || "",
           variantDescription: variant.variantDescription || "",
           brand: variant.brand || "Others",
@@ -293,7 +293,7 @@ const ProductUpdatePage = () => {
             !!variant.imageUrl && variant.imageUrl !== productDetails.imageUrl,
           _id: variant._id, // Keep original _id for updates
         }));
-
+        console.log("Processed variants for state:", processedVariants);
         setVariants(processedVariants);
       }
       setDeletedVariants([]);
@@ -438,7 +438,7 @@ const ProductUpdatePage = () => {
   if (isError) {
     return <ErrorState error={error} navigate={navigate} />;
   }
-
+  console.log("Product data ready for editing:", { productData, variants, deletedVariants });
   // No product found
   if (!productResponse?.productDetails) {
     return (
