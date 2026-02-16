@@ -18,8 +18,7 @@ const axiosClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
-  },
-  withCredentials: true,
+  }
 });
 
 // 2️⃣ Request Interceptor: Attach Token
