@@ -54,41 +54,34 @@ export const uploadImageAPI = async (payload) => {
   }
 };
 
-// Direct file upload (recommended)
+
+
 export const uploadImageDirectAPI = async (formData) => {
   try {
     console.log('Direct file upload API called');
     
-    // Try with axios first (if configured for file uploads)
-    try {
-      const response = await axiosClient.post('/upload/upload-direct', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 60000,
-      });
-      return response.data;
-    } catch (axiosError) {
-      console.log('Axios upload failed, trying fetch fallback:', axiosError.message);
-      
-      // Fallback to fetch
-      const response = await fetch('/api/upload/upload-direct', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Upload failed');
-      }
-      
-      return await response.json();
-    }
+    // Use the dedicated upload client
+    const response = await uploadClient.post('/api/upload/upload-direct', formData);
+    return response.data;
+    
   } catch (error) {
     console.error('Direct upload API error:', error);
-    throw new Error(`Image upload failed: ${error.message}`);
+    
+    // Provide more detailed error message
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      throw new Error(`Upload failed: ${error.response.data.message || error.response.statusText}`);
+    } else if (error.request) {
+      // The request was made but no response was received
+      throw new Error('Upload failed: No response from server');
+    } else {
+      // Something happened in setting up the request
+      throw new Error(`Upload failed: ${error.message}`);
+    }
   }
 };
+
+// Keep other functions as they are...
 
 // Bulk update product and variants
 export const bulkUpdateProductWithVariantsAPI = async (productId, data) => {
