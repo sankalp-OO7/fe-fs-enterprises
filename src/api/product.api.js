@@ -1,5 +1,5 @@
 import axiosClient from "./axiosClient";
-
+import { uploadClient } from "./axiosClient";
 export const fetchProducts = async () => {
   const res = await axiosClient.get("/products");
   return res.data.data;
