@@ -61,7 +61,7 @@ export const uploadImageDirectAPI = async (formData) => {
     console.log('Direct file upload API called');
     
     // Use the dedicated upload client
-    const response = await uploadClient.post('/api/upload/upload-direct', formData);
+    const response = await uploadClient.post('/upload/upload-direct', formData);
     return response.data;
     
   } catch (error) {
