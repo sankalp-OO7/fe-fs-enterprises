@@ -93,7 +93,7 @@ const handleRemoveVariant = useCallback((variantId) => {
   }, [variants, productData.imageUrl, onResetVariantImage]);
 
 const handleDuplicateVariant = useCallback((variant) => {
-  console.log("Table: Duplicating variant", variant);
+ 
   
   // Create a clean copy without the original _id
   const variantCopy = {
@@ -139,7 +139,7 @@ const handleDuplicateVariant = useCallback((variant) => {
       </Paper>
     );
   }
-  console.log('Rendering VariantsTable with variants:', variants);
+ 
   return (
     <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
       <Table>

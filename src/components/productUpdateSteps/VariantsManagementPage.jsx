@@ -110,7 +110,6 @@ const VariantsManagementPage = memo(
       return filtered;
     }, [variants, searchTerm, sortBy, filterBy]);
 
-    console.log("Rendering VariantsManagementPage with variants:", variants);
     // Handlers
     const handleAddVariant = useCallback(() => {
       const variantId = `new-${Date.now()}`;
@@ -133,7 +132,6 @@ const VariantsManagementPage = memo(
 
     const handleSaveVariantForm = useCallback(
       (formData) => {
-        console.log("Saving variant form data:", formData);
         if (selectedVariantForForm?.isNew) {
           const newVariant = {
             ...formData,
@@ -430,10 +428,7 @@ const VariantsManagementPage = memo(
               }
             }}
             onRemoveVariant={(variantId) => {
-              console.log(
-                "VariantsManagementPage: onRemoveVariant called with ID:",
-                variantId,
-              );
+          
               // Filter out the variant and notify parent
               const updatedVariants = variants.filter(
                 (v) => v.id !== variantId,
@@ -447,7 +442,7 @@ const VariantsManagementPage = memo(
                   v.id === id
                     ? {
                         ...v,
-                        imageUrl: productData.imageUrl,
+                        imageUrl: v?.imageUrl ??  productData?.imageUrl,
                         hasCustomImage: false,
                       }
                     : v,
@@ -455,7 +450,7 @@ const VariantsManagementPage = memo(
               )
             }
             onDuplicateVariant={(variant) => {
-              console.log("Duplicating variant:", variant);
+              
 
               // Create a new variant with unique values
               const newVariant = {

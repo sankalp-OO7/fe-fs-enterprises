@@ -8,7 +8,6 @@ import imageCompression from 'browser-image-compression';
  */
 export const optimizeImage = async (file, options = {}) => {
   try {
-    console.log('Original file size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
     
     const defaultOptions = {
       maxSizeMB: 1, // Maximum size in MB (adjust as needed)
@@ -22,17 +21,10 @@ export const optimizeImage = async (file, options = {}) => {
 
     // If image is already small, don't compress
     if (file.size <= defaultOptions.maxSizeMB * 1024 * 1024) {
-      console.log('Image is already optimized, skipping compression');
       return file;
     }
 
     const compressedFile = await imageCompression(file, defaultOptions);
-    
-    console.log('Compressed file size:', 
-      (compressedFile.size / 1024 / 1024).toFixed(2), 'MB',
-      'Reduction:', 
-      ((1 - compressedFile.size / file.size) * 100).toFixed(1) + '%'
-    );
     
     return compressedFile;
   } catch (error) {

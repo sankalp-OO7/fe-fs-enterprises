@@ -144,25 +144,29 @@ const VariantFormDialog = memo(({
     setTouched(prev => ({ ...prev, [field]: true }));
   }, []);
 
-  const processImageUpload = useCallback(async (file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewImage(e.target.result);
-    };
-    reader.readAsDataURL(file);
+ const processImageUpload = useCallback(async (file) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    setPreviewImage(e.target.result); // show base64 preview immediately
+  };
+  reader.readAsDataURL(file);
 
-    setImageUploading(true);
-    try {
-      if (onImageUpload) {
-        await onImageUpload(file, variant.id);
+  setImageUploading(true);
+  try {
+    if (onImageUpload) {
+      const newImageUrl = await onImageUpload(file, variant.id); // ← capture returned URL
+      if (newImageUrl) {
+        handleChange('imageUrl', newImageUrl);   // ← update formData with real URL
+        handleChange('hasCustomImage', true);
+        setPreviewImage(newImageUrl);            // ← replace base64 with real URL
       }
-      handleChange('hasCustomImage', true);
-    } catch (error) {
-      console.error('Image upload failed:', error);
-    } finally {
-      setImageUploading(false);
     }
-  }, [onImageUpload, variant?.id, handleChange]);
+  } catch (error) {
+    console.error('Image upload failed:', error);
+  } finally {
+    setImageUploading(false);
+  }
+}, [onImageUpload, variant?.id, handleChange]);
 
   const handleFileUpload = useCallback(async (event) => {
     const file = event.target.files[0];

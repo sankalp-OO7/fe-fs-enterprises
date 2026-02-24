@@ -55,7 +55,7 @@ const ProductCard = ({
   onAddSingleVariant,
 }) => {
   const navigate = useNavigate();
-console.log("Rendering ProductCard for:", product);
+
   const categoryName =
     product.categoryId?.name ||
     categories.find((c) => c._id === product.categoryId)?.name ||

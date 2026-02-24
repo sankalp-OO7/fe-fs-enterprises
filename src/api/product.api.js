@@ -11,7 +11,6 @@ export const createProductAPI = async (productData) => {
 };
 export const fetchProductWithVariants = async (productId) => {
   const res = await axiosClient.get(`/products/${productId}/variants`);
-  console.log("Product with variants API response:", res.data);
   return {
     productDetails: res.data.product,
     variants: res.data.data,
@@ -32,7 +31,7 @@ export const updateVariantAPI = async (variantId, variantData) => {
 // Base64 upload (legacy - keep for compatibility)
 export const uploadImageAPI = async (payload) => {
   try {
-    console.log('Base64 upload API called');
+   
     
     const response = await fetch('/api/upload/upload', {
       method: 'POST',
@@ -58,7 +57,6 @@ export const uploadImageAPI = async (payload) => {
 
 export const uploadImageDirectAPI = async (formData) => {
   try {
-    console.log('Direct file upload API called');
     
     // Use the dedicated upload client
     const response = await uploadClient.post('/upload/upload-direct', formData);
@@ -86,12 +84,7 @@ export const uploadImageDirectAPI = async (formData) => {
 // Bulk update product and variants
 export const bulkUpdateProductWithVariantsAPI = async (productId, data) => {
   try {
-    console.log('Bulk update API called:', { 
-      productId, 
-      variantCount: data.variants?.length || 0,
-      deleteCount: data.variantsToDelete?.length || 0,
-      hasProductUpdate: !!data.product 
-    });
+
     
     // Clean up variant data before sending
     const cleanedData = { ...data };
@@ -111,7 +104,6 @@ export const bulkUpdateProductWithVariantsAPI = async (productId, data) => {
       });
     }
     
-    console.log('Cleaned data for bulk update:', cleanedData);
     
     const response = await axiosClient.put(`/products/${productId}/bulk-update`, cleanedData, {
       timeout: 30000,

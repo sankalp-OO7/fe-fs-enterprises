@@ -123,7 +123,7 @@ const ProductUpdatePage = () => {
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
   });
-  console.log("Fetched productResponse:", productResponse);
+ 
   // React Query Mutations
   const updateProductMutation = useMutation({
     mutationFn: (data) => updateProductAPI(productId, data),
@@ -165,104 +165,71 @@ const ProductUpdatePage = () => {
     },
   });
 
-  const handleImageUpload = async (file, target = "product") => {
-    console.log("Starting image upload for:", target, "File:", file.name);
-    if (!file) return;
+const handleImageUpload = async (file, target = "product") => {
+  if (!file) return;
 
-    setImageUploading(true);
+  setImageUploading(true);
 
-    try {
-      // 1. Validate the image
-      const validation = validateImage(file);
-      if (!validation.isValid) {
-        throw new Error(validation.errors.join(", "));
-      }
-
-      // Show optimization status
-      setSnackbar({
-        open: true,
-        message: "Optimizing image...",
-        severity: "info",
-      });
-
-      // 2. Optimize the image
-      const optimizedFile = await optimizeImage(file);
-
-      // 3. Create FormData for direct upload
-      const formData = new FormData();
-      formData.append("image", optimizedFile);
-      formData.append(
-        "folder",
-        target === "product" ? "products/main" : "products/variants",
-      );
-
-      // Show upload status
-      setSnackbar({
-        open: true,
-        message: "Uploading to server...",
-        severity: "info",
-      });
-
-      // 4. Upload using direct file upload (more efficient)
-      const response = await uploadImageDirectAPI(formData);
-
-      if (!response.success) {
-        throw new Error(response.message || "Upload failed");
-      }
-
-      const imageUrl = response.data.url;
-
-      // 5. Update state
-      if (target === "product") {
-        // Update product image
-        const updatedProductData = { ...productData, imageUrl };
-        setProductData(updatedProductData);
-
-        // Update variants that inherit product image
-        const updatedVariants = variants.map((variant) => ({
-          ...variant,
-          imageUrl: !variant.hasCustomImage ? imageUrl : variant.imageUrl,
-        }));
-        setVariants(updatedVariants);
-
-        setSnackbar({
-          open: true,
-          message: "Product image updated successfully",
-          severity: "success",
-        });
-      } else {
-        // Update specific variant
-        const updatedVariants = variants.map((variant) =>
-          variant.id === target
-            ? {
-                ...variant,
-                imageUrl,
-                hasCustomImage: true,
-              }
-            : variant,
-        );
-        setVariants(updatedVariants);
-
-        setSnackbar({
-          open: true,
-          message: "Variant image updated successfully",
-          severity: "success",
-        });
-      }
-
-      setIsDirty(true);
-    } catch (error) {
-      console.error("Image upload error:", error);
-      setSnackbar({
-        open: true,
-        message: `Upload failed: ${error.message}`,
-        severity: "error",
-      });
-      throw error;
-    } finally {
-      setImageUploading(false);
+  try {
+    const validation = validateImage(file);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join(", "));
     }
-  };
+
+    setSnackbar({ open: true, message: "Optimizing image...", severity: "info" });
+
+    const optimizedFile = await optimizeImage(file);
+
+    const formData = new FormData();
+    formData.append("image", optimizedFile);
+    formData.append(
+      "folder",
+      target === "product" ? "products/main" : "products/variants",
+    );
+
+    setSnackbar({ open: true, message: "Uploading to server...", severity: "info" });
+
+    const response = await uploadImageDirectAPI(formData);
+
+    if (!response.success) {
+      throw new Error(response.message || "Upload failed");
+    }
+
+    const imageUrl = response.data.url;
+
+    if (target === "product") {
+      const updatedProductData = { ...productData, imageUrl };
+      setProductData(updatedProductData);
+
+      const updatedVariants = variants.map((variant) => ({
+        ...variant,
+        imageUrl: !variant.hasCustomImage ? imageUrl : variant.imageUrl,
+      }));
+      setVariants(updatedVariants);
+
+      setSnackbar({ open: true, message: "Product image updated successfully", severity: "success" });
+    } else {
+      const updatedVariants = variants.map((variant) =>
+        variant.id === target
+          ? { ...variant, imageUrl, hasCustomImage: true }
+          : variant,
+      );
+      setVariants(updatedVariants);
+
+      setSnackbar({ open: true, message: "Variant image updated successfully", severity: "success" });
+    }
+
+    setIsDirty(true);
+    return imageUrl; // ← ADDED
+
+  } catch (error) {
+    console.error("Image upload error:", error);
+    setSnackbar({ open: true, message: `Upload failed: ${error.message}`, severity: "error" });
+    throw error;
+  } finally {
+    setImageUploading(false);
+  }
+};
   // Initialize form data when data is loaded
   useEffect(() => {
     if (productResponse && !productData) {
@@ -276,7 +243,6 @@ const ProductUpdatePage = () => {
         imageUrl: productDetails.imageUrl || "",
         originalData: productDetails,
       });
-      console.log("Processing fetched variants:", fetchedVariants);
       if (fetchedVariants && Array.isArray(fetchedVariants)) {
         const processedVariants = fetchedVariants.map((variant) => ({
           id: variant.id || variant._id, 
@@ -293,7 +259,6 @@ const ProductUpdatePage = () => {
             !!variant.imageUrl && variant.imageUrl !== productDetails.imageUrl,
           _id: variant._id, // Keep original _id for updates
         }));
-        console.log("Processed variants for state:", processedVariants);
         setVariants(processedVariants);
       }
       setDeletedVariants([]);
@@ -308,33 +273,25 @@ const ProductUpdatePage = () => {
   // Replace your handleVariantsUpdate function with this:
   const handleVariantsUpdate = useCallback(
     (newVariants, deletedVariantId = null) => {
-      console.log("🔄 handleVariantsUpdate called:", {
-        newVariantsCount: newVariants.length,
-        deletedVariantId,
-        currentVariantsCount: variants.length,
-      });
+ 
 
       // Update the variants state first
       setVariants(newVariants);
 
       // Then track deletion if needed
       if (deletedVariantId) {
-        console.log("🗑️ Tracking deletion for variant:", deletedVariantId);
 
         // Check if it's a valid MongoDB ObjectId (not a temp ID like 'new-xxx')
         const isValidObjectId =
           deletedVariantId && /^[0-9a-fA-F]{24}$/.test(deletedVariantId);
 
         if (isValidObjectId) {
-          console.log("✅ Valid ObjectId, adding to deletedVariants");
           setDeletedVariants((prev) => {
             // Check if already in the array to avoid duplicates
             if (prev.includes(deletedVariantId)) {
-              console.log("⚠️ Variant already in deletedVariants");
               return prev;
             }
             const updated = [...prev, deletedVariantId];
-            console.log("📝 Updated deletedVariants:", updated);
             return updated;
           });
         } else {
@@ -405,7 +362,6 @@ const ProductUpdatePage = () => {
         };
       }
 
-      console.log("Sending bulk update data with deletions:", updateData);
 
       await bulkUpdateMutation.mutateAsync(updateData);
 
@@ -438,7 +394,6 @@ const ProductUpdatePage = () => {
   if (isError) {
     return <ErrorState error={error} navigate={navigate} />;
   }
-  console.log("Product data ready for editing:", { productData, variants, deletedVariants });
   // No product found
   if (!productResponse?.productDetails) {
     return (

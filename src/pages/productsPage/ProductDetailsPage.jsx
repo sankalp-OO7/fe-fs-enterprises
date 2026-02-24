@@ -49,6 +49,7 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProductWithVariants } from "../../api/product.api";
 
+// this one need remove from the state and use directly from the product data if image is not available in variant
 const defaultImages = [
   "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660477/fs/Fs3_iros0a.jpg",
   "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660467/fs/Fs2_n5g4lm.webp",
@@ -104,7 +105,6 @@ const ProductDetailsPage = () => {
   const [viewMode, setViewMode] = useState("card"); // 'card' or 'list'
   const ITEMS_PER_PAGE = 8; // Changed to multiple of 4 for better alignment
   const [currentPage, setCurrentPage] = useState(1);
-   const [pickedImage, setPickedImage ] = useState("");
   const {
     data: product = { productDetails: {}, variants: [] },
     isLoading,
@@ -114,7 +114,7 @@ const ProductDetailsPage = () => {
     queryFn: () => fetchProductWithVariants(productId),
     enabled: !!productId,
   });
-  console.log("Fetched product data:", product);
+  
   useEffect(() => {
     setCurrentPage(1);
   }, [variantSearchTerm, selectedBrandCategory]);
@@ -126,15 +126,6 @@ const ProductDetailsPage = () => {
     }
   }, [isMobile]);
 
-  useEffect(() => {
-    if (selectedVariant?.imageUrl) {
-      setPickedImage(selectedVariant.imageUrl);
-    } else if (product.productDetails.imageUrl && product.productDetails.imageUrl !== "https://example.com/default-product.jpg") {
-      setPickedImage(product.productDetails.imageUrl);
-    } else {
-      setPickedImage(getDefaultImageForProduct(product._id));
-    }
-  }, [selectedVariant, product.productDetails.imageUrl, product._id]);
   const handlePageChange = (_, value) => {
     setCurrentPage(value);
   };
@@ -501,7 +492,7 @@ const ProductDetailsPage = () => {
                           <Box sx={{ position: "relative" }}>
                             <CardMedia
                               component="img"
-                              image={pickedImage}
+                              image={variant?.imageUrl || product?.productDetails?.imageUrl || getDefaultImageForProduct(productId)}
                               alt={variant.name}
                               sx={{
                                 height: 180,
@@ -718,7 +709,7 @@ const ProductDetailsPage = () => {
                                 }}
                               >
                                 <Avatar
-                                  src={pickedImage}
+                                  src={variant?.imageUrl || product?.productDetails?.imageUrl || getDefaultImageForProduct(productId)}
                                   alt={variant.variantName}
                                   sx={{
                                     width: 60,
