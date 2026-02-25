@@ -1,4 +1,3 @@
-// src/components/variant/VariantFormDialog.jsx
 import React, { useState, useCallback, memo, useEffect } from 'react';
 import {
   Dialog,
@@ -7,7 +6,6 @@ import {
   DialogActions,
   TextField,
   Button,
-  Grid,
   Box,
   Typography,
   IconButton,
@@ -18,19 +16,16 @@ import {
   Alert,
   Slide,
   alpha,
+  Grid,
 } from '@mui/material';
 import {
   Close,
-  CloudUpload,
   Save,
   Refresh,
   Inventory,
   AttachMoney,
-  Percent,
   Description,
-  BrandingWatermark,
-  QrCode,
-  Error,
+  Error as ErrorIcon,
   PhotoCamera,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
@@ -93,6 +88,66 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+// ─── Validation Rules ────────────────────────────────────────────────────────
+
+const validate = (formData) => {
+  const errors = {};
+
+  if (!formData.variantName?.trim()) {
+    errors.variantName = 'Variant name is required';
+  }
+
+  if (!formData.brand?.trim()) {
+    errors.brand = 'Brand is required';
+  }
+
+  if (formData.invoicePrice === '' || formData.invoicePrice === null || formData.invoicePrice === undefined) {
+    errors.invoicePrice = 'Invoice price is required';
+  } else if (isNaN(Number(formData.invoicePrice))) {
+    errors.invoicePrice = 'Must be a valid number';
+  } else if (Number(formData.invoicePrice) < 0) {
+    errors.invoicePrice = 'Cannot be negative';
+  }
+
+  if (formData.estimatePrice === '' || formData.estimatePrice === null || formData.estimatePrice === undefined) {
+    errors.estimatePrice = 'Estimate price is required';
+  } else if (isNaN(Number(formData.estimatePrice))) {
+    errors.estimatePrice = 'Must be a valid number';
+  } else if (Number(formData.estimatePrice) < 0) {
+    errors.estimatePrice = 'Cannot be negative';
+  }
+
+  if (formData.stockQty === '' || formData.stockQty === null || formData.stockQty === undefined) {
+    errors.stockQty = 'Stock quantity is required';
+  } else if (!Number.isInteger(Number(formData.stockQty))) {
+    errors.stockQty = 'Must be a whole number';
+  } else if (Number(formData.stockQty) < 0) {
+    errors.stockQty = 'Cannot be negative';
+  }
+
+  if (formData.gst !== '' && formData.gst !== null && formData.gst !== undefined) {
+    const gstVal = Number(formData.gst);
+    if (isNaN(gstVal)) {
+      errors.gst = 'Must be a valid number';
+    } else if (gstVal < 0 || gstVal > 100) {
+      errors.gst = 'GST must be between 0 and 100';
+    }
+  }
+
+  if (formData.itemCode !== '' && formData.itemCode !== null && formData.itemCode !== undefined) {
+    const code = Number(formData.itemCode);
+    if (isNaN(code) || !Number.isInteger(code)) {
+      errors.itemCode = 'Must be a whole number';
+    } else if (code < 0) {
+      errors.itemCode = 'Cannot be negative';
+    }
+  }
+
+  return errors;
+};
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 const VariantFormDialog = memo(({
   open,
   onClose,
@@ -107,66 +162,63 @@ const VariantFormDialog = memo(({
   const [previewImage, setPreviewImage] = useState(null);
   const [touched, setTouched] = useState({});
 
-  // Initialize form data - UPDATED field names to match schema
+  // Use string values for number fields so user can clear them freely
   useEffect(() => {
     if (variant) {
       setFormData({
         variantName: variant.variantName || '',
-        brand: variant.brand || 'Others', // Default to "Others" as per schema
-        variantDescription: variant.variantDescription || variant.varientDescription || '', // Handle both spellings
-        invoicePrice: variant.invoicePrice || 0,
-        estimatePrice: variant.estimatePrice || 0,
-        stockQty: variant.stockQty || 0,
+        brand: variant.brand || 'Others',
+        variantDescription: variant.variantDescription || variant.varientDescription || '',
+        invoicePrice: variant.invoicePrice ?? '',   // ← string-friendly
+        estimatePrice: variant.estimatePrice ?? '',
+        stockQty: variant.stockQty ?? '',
         imageUrl: variant.imageUrl || '',
         hasCustomImage: variant.hasCustomImage || false,
-        gst: variant.gst || 0,
-        itemCode: variant.itemCode || '',
+        gst: variant.gst ?? '',
+        itemCode: variant.itemCode ?? '',
       });
       setPreviewImage(variant.imageUrl || productImage);
+      setTouched({});
     }
   }, [variant, productImage]);
 
+  const errors = validate(formData);
+  const isFormValid = Object.keys(errors).length === 0;
+
+  // Generic change — keeps value as string so user can freely edit
   const handleChange = useCallback((field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setTouched(prev => ({ ...prev, [field]: true }));
   }, []);
 
-  const handleNumberChange = useCallback((field, value) => {
-    let parsedValue;
-    if (field === 'stockQty') {
-      parsedValue = parseInt(value) || 0;
-    } else {
-      parsedValue = parseFloat(value) || 0;
-    }
-    
-    const safeValue = Math.max(0, parsedValue);
-    setFormData(prev => ({ ...prev, [field]: safeValue }));
+  // For number fields — store as raw string while typing, no forced conversion
+  const handleNumberInput = useCallback((field, value) => {
+    // Allow empty string so user can clear the field
+    setFormData(prev => ({ ...prev, [field]: value }));
     setTouched(prev => ({ ...prev, [field]: true }));
   }, []);
 
- const processImageUpload = useCallback(async (file) => {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    setPreviewImage(e.target.result); // show base64 preview immediately
-  };
-  reader.readAsDataURL(file);
+  const processImageUpload = useCallback(async (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => setPreviewImage(e.target.result);
+    reader.readAsDataURL(file);
 
-  setImageUploading(true);
-  try {
-    if (onImageUpload) {
-      const newImageUrl = await onImageUpload(file, variant.id); // ← capture returned URL
-      if (newImageUrl) {
-        handleChange('imageUrl', newImageUrl);   // ← update formData with real URL
-        handleChange('hasCustomImage', true);
-        setPreviewImage(newImageUrl);            // ← replace base64 with real URL
+    setImageUploading(true);
+    try {
+      if (onImageUpload) {
+        const newImageUrl = await onImageUpload(file, variant.id);
+        if (newImageUrl) {
+          handleChange('imageUrl', newImageUrl);
+          handleChange('hasCustomImage', true);
+          setPreviewImage(newImageUrl);
+        }
       }
+    } catch (error) {
+      console.error('Image upload failed:', error);
+    } finally {
+      setImageUploading(false);
     }
-  } catch (error) {
-    console.error('Image upload failed:', error);
-  } finally {
-    setImageUploading(false);
-  }
-}, [onImageUpload, variant?.id, handleChange]);
+  }, [onImageUpload, variant?.id, handleChange]);
 
   const handleFileUpload = useCallback(async (event) => {
     const file = event.target.files[0];
@@ -176,36 +228,53 @@ const VariantFormDialog = memo(({
 
   const handleResetImage = useCallback(() => {
     setPreviewImage(productImage);
-    handleChange('imageUrl', productImage);
+    handleChange('imageUrl', productImage || '');
     handleChange('hasCustomImage', false);
   }, [handleChange, productImage]);
 
-  const handleSave = useCallback(() => {
-    // Map to schema field names - UPDATED to match backend
+  // Mark all fields touched on save attempt
+  const handleSaveClick = useCallback(() => {
+    // Touch all fields to show all errors
+    setTouched({
+      variantName: true,
+      brand: true,
+      invoicePrice: true,
+      estimatePrice: true,
+      stockQty: true,
+      gst: true,
+      itemCode: true,
+    });
+
+    if (!isFormValid) return;
+
     const saveData = {
-      variantName: formData.variantName,
-      brand: formData.brand || 'Others', // Ensure brand has default
-      variantDescription: formData.variantDescription,
-      invoicePrice: formData.invoicePrice,
-      estimatePrice: formData.estimatePrice,
-      stockQty: formData.stockQty,
+      variantName: formData.variantName.trim(),
+      brand: formData.brand.trim() || 'Others',
+      variantDescription: formData.variantDescription || '',
+      invoicePrice: Number(formData.invoicePrice),
+      estimatePrice: Number(formData.estimatePrice),
+      stockQty: parseInt(formData.stockQty),
       imageUrl: formData.imageUrl,
       hasCustomImage: formData.hasCustomImage,
-      gst: formData.gst,
-      itemCode: formData.itemCode ? parseInt(formData.itemCode) : undefined, // Convert to number as per schema
+      gst: formData.gst !== '' ? Number(formData.gst) : 0,
+      // Send undefined if empty — backend will auto-generate
+      itemCode: formData.itemCode !== '' && formData.itemCode !== null
+        ? parseInt(formData.itemCode)
+        : undefined,
     };
-    
+
     // Remove undefined fields
-    Object.keys(saveData).forEach(key => 
-      saveData[key] === undefined && delete saveData[key]
+    Object.keys(saveData).forEach(
+      key => saveData[key] === undefined && delete saveData[key]
     );
-    
+
     onSave(saveData);
-  }, [formData, onSave]);
+  }, [formData, isFormValid, onSave]);
 
   if (!variant) return null;
 
-  const isFormValid = formData.variantName?.trim() && formData.brand?.trim();
+  // Helper to show error only if field is touched
+  const fieldError = (field) => touched[field] ? errors[field] : undefined;
 
   return (
     <Dialog
@@ -214,33 +283,27 @@ const VariantFormDialog = memo(({
       maxWidth="md"
       fullWidth
       TransitionComponent={Transition}
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          maxHeight: '90vh',
-        }
-      }}
+      PaperProps={{ sx: { borderRadius: 3, maxHeight: '90vh' } }}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <DialogTitle sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
         py: 2,
         px: 3,
         borderBottom: (theme) => `1px solid ${alpha(theme.palette.divider, 0.1)}`,
       }}>
-        <Box>
-          <Typography variant="h6" fontWeight="bold">
-            Edit Variant : {variant.variantName}
-          </Typography>
-        </Box>
+        <Typography variant="h6" fontWeight="bold">
+          {variant.isNew ? 'Add Variant' : `Edit Variant: ${variant.variantName}`}
+        </Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
-        {/* Image Upload Section */}
+
+        {/* Image Section */}
         <Grid container spacing={3} sx={{ mb: 1, mt: 1, justifyContent: 'center', alignItems: 'center', gap: 2 }}>
           <Grid item xs={12} sm={4}>
             <Avatar
@@ -256,17 +319,16 @@ const VariantFormDialog = memo(({
               }}
             />
           </Grid>
-          
+
           <Grid item xs={12} sm={8}>
             <input
               type="file"
               accept="image/*"
               onChange={handleFileUpload}
               style={{ display: 'none' }}
-              id="image-upload-input"
+              id="variant-image-upload"
             />
-            
-            <label htmlFor="image-upload-input" style={{ width: '100%' }}>
+            <label htmlFor="variant-image-upload" style={{ width: '100%' }}>
               <ImageUploadBox>
                 {imageUploading ? (
                   <Box sx={{ textAlign: 'center' }}>
@@ -278,9 +340,7 @@ const VariantFormDialog = memo(({
                 ) : (
                   <>
                     <PhotoCamera sx={{ fontSize: 30, color: 'primary.main', mb: 1 }} />
-                    <Typography variant="body2" fontWeight="500">
-                      Click to upload
-                    </Typography>
+                    <Typography variant="body2" fontWeight="500">Click to upload</Typography>
                     <Typography variant="caption" color="text.secondary" align="center">
                       JPG, PNG, GIF (Max 5MB)
                     </Typography>
@@ -298,7 +358,7 @@ const VariantFormDialog = memo(({
                 size="small"
                 sx={{ mt: 1 }}
               >
-                Reset
+                Reset to Product Image
               </Button>
             )}
           </Grid>
@@ -306,44 +366,44 @@ const VariantFormDialog = memo(({
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Form Sections */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {/* Basic Information Section */}
+
+          {/* Basic Info */}
           <SectionContainer>
             <SectionHeader>
               <Description fontSize="small" /> Basic Information
             </SectionHeader>
-            
             <FieldsRow>
               <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
                 <TextField
                   fullWidth
                   label="Variant Name *"
-                  value={formData.variantName}
+                  value={formData.variantName || ''}
                   onChange={(e) => handleChange('variantName', e.target.value)}
                   size="small"
-                  error={touched.variantName && !formData.variantName}
-                  helperText={touched.variantName && !formData.variantName ? 'Required' : ''}
+                  error={!!fieldError('variantName')}
+                  helperText={fieldError('variantName')}
                 />
               </Box>
-              
+
               <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
                 <TextField
                   fullWidth
-                  label="Brand"
-                  value={formData.brand}
+                  label="Brand *"
+                  value={formData.brand || ''}
                   onChange={(e) => handleChange('brand', e.target.value)}
                   size="small"
                   placeholder="Others"
-                  helperText="Defaults to 'Others' if not specified"
+                  error={!!fieldError('brand')}
+                  helperText={fieldError('brand') || "Defaults to 'Others' if not specified"}
                 />
               </Box>
-              
+
               <Box sx={{ flex: '1 1 100%' }}>
                 <TextField
                   fullWidth
                   label="Description"
-                  value={formData.variantDescription}
+                  value={formData.variantDescription || ''}
                   onChange={(e) => handleChange('variantDescription', e.target.value)}
                   multiline
                   rows={2}
@@ -354,12 +414,11 @@ const VariantFormDialog = memo(({
             </FieldsRow>
           </SectionContainer>
 
-          {/* Pricing Section - UPDATED field names */}
+          {/* Pricing */}
           <SectionContainer>
             <SectionHeader>
               <AttachMoney fontSize="small" /> Pricing
             </SectionHeader>
-            
             <FieldsRow>
               <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
                 <TextField
@@ -367,38 +426,46 @@ const VariantFormDialog = memo(({
                   label="Invoice Price *"
                   type="number"
                   value={formData.invoicePrice}
-                  onChange={(e) => handleNumberChange('invoicePrice', e.target.value)}
+                  onChange={(e) => handleNumberInput('invoicePrice', e.target.value)}
+                  onFocus={(e) => {
+                    // Select all on focus so user can just type new value
+                    e.target.select();
+                  }}
                   size="small"
+                  error={!!fieldError('invoicePrice')}
+                  helperText={fieldError('invoicePrice')}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                    inputProps: { min: 0, step: "0.01" }
+                    inputProps: { min: 0, step: '0.01' },
                   }}
                 />
               </Box>
-              
+
               <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '250px' }}>
                 <TextField
                   fullWidth
                   label="Estimate Price *"
                   type="number"
                   value={formData.estimatePrice}
-                  onChange={(e) => handleNumberChange('estimatePrice', e.target.value)}
+                  onChange={(e) => handleNumberInput('estimatePrice', e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   size="small"
+                  error={!!fieldError('estimatePrice')}
+                  helperText={fieldError('estimatePrice')}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                    inputProps: { min: 0, step: "0.01" }
+                    inputProps: { min: 0, step: '0.01' },
                   }}
                 />
               </Box>
             </FieldsRow>
           </SectionContainer>
 
-          {/* Stock & Additional Info Section - UPDATED field names */}
+          {/* Stock & More */}
           <SectionContainer>
             <SectionHeader>
               <Inventory fontSize="small" /> Stock & More
             </SectionHeader>
-            
             <FieldsRow>
               <Box sx={{ flex: '1 1 calc(33.333% - 11px)', minWidth: '200px' }}>
                 <TextField
@@ -406,70 +473,85 @@ const VariantFormDialog = memo(({
                   label="Stock Quantity *"
                   type="number"
                   value={formData.stockQty}
-                  onChange={(e) => handleNumberChange('stockQty', e.target.value)}
+                  onChange={(e) => handleNumberInput('stockQty', e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   size="small"
+                  error={!!fieldError('stockQty')}
+                  helperText={fieldError('stockQty')}
                   InputProps={{
-                    inputProps: { min: 0, step: "1" }
+                    inputProps: { min: 0, step: '1' },
                   }}
                 />
               </Box>
-              
+
               <Box sx={{ flex: '1 1 calc(33.333% - 11px)', minWidth: '200px' }}>
                 <TextField
                   fullWidth
                   label="GST %"
                   type="number"
                   value={formData.gst}
-                  onChange={(e) => handleNumberChange('gst', e.target.value)}
+                  onChange={(e) => handleNumberInput('gst', e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   size="small"
+                  error={!!fieldError('gst')}
+                  helperText={fieldError('gst') || '0 – 100%'}
                   InputProps={{
                     endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                    inputProps: { min: 0, max: 100, step: "0.01" }
+                    inputProps: { min: 0, max: 100, step: '0.01' },
                   }}
                 />
               </Box>
-              
+
               <Box sx={{ flex: '1 1 calc(33.333% - 11px)', minWidth: '200px' }}>
                 <TextField
                   fullWidth
                   label="Item Code"
                   type="number"
                   value={formData.itemCode}
-                  onChange={(e) => handleNumberChange('itemCode', e.target.value)}
+                  onChange={(e) => handleNumberInput('itemCode', e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   size="small"
-                  helperText="Unique identifier (auto-generated if empty)"
+                  error={!!fieldError('itemCode')}
+                  helperText={fieldError('itemCode') || 'Auto-generated if empty'}
+                  InputProps={{
+                    inputProps: { min: 0, step: '1' },
+                  }}
                 />
               </Box>
             </FieldsRow>
           </SectionContainer>
         </Box>
 
-        {/* Validation Alert */}
-        {!isFormValid && (
-          <Alert 
-            severity="warning" 
-            icon={<Error />}
+        {/* Show all errors summary if user tried to save */}
+        {Object.keys(touched).length > 0 && !isFormValid && (
+          <Alert
+            severity="error"
+            icon={<ErrorIcon />}
             sx={{ mt: 1, borderRadius: 2 }}
-            size="small"
           >
-            Please fill in all required fields (*)
+            <Typography variant="body2" fontWeight={600} gutterBottom>
+              Please fix the following:
+            </Typography>
+            {Object.values(errors).map((err, i) => (
+              <Typography key={i} variant="caption" display="block">• {err}</Typography>
+            ))}
           </Alert>
         )}
       </DialogContent>
 
-      <DialogActions sx={{ 
-        px: 3, 
+      <DialogActions sx={{
+        px: 3,
         py: 2,
         borderTop: (theme) => `1px solid ${alpha(theme.palette.divider, 0.1)}`,
       }}>
-        <Button onClick={onClose} variant="outlined" size="medium">
+        <Button onClick={onClose} variant="outlined" size="medium" disabled={loading}>
           Cancel
         </Button>
         <Button
-          onClick={handleSave}
+          onClick={handleSaveClick}
           variant="contained"
           startIcon={loading ? <CircularProgress size={18} /> : <Save />}
-          disabled={loading || !isFormValid}
+          disabled={loading}  // ← not disabled by validation, shows errors instead
           size="medium"
         >
           {loading ? 'Saving...' : 'Save Changes'}

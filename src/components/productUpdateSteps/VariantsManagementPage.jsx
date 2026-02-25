@@ -122,6 +122,7 @@ const VariantsManagementPage = memo(
         estimatePrice: 0,
         stockQty: 0,
         imageUrl: productData.imageUrl,
+        gst: 0,
         hasCustomImage: false,
         isNew: true, // Flag to indicate this is new
         itemCode: "",
