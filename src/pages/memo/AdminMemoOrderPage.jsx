@@ -500,7 +500,7 @@ const AdminMemoOrdersPage = () => {
                 <StyledTableCell>Status</StyledTableCell>
                 <StyledTableCell>Amount</StyledTableCell>
                 <StyledTableCell>Payment</StyledTableCell>
-                <StyledTableCell>Method</StyledTableCell>
+                <StyledTableCell>Customer Number</StyledTableCell>
                 <StyledTableCell>Address</StyledTableCell>
                 <StyledTableCell>Items</StyledTableCell>
               </TableRow>
@@ -553,7 +553,7 @@ const AdminMemoOrdersPage = () => {
                       {getPaymentStatusChip(order.paymentStatus)}
                     </TableCell>
                     <TableCell sx={{ p: 2 }}>
-                      {order.paymentMethod || "—"}
+                      {order.mobileNo || "—"}
                     </TableCell>
                     <Tooltip title={order.shippingAddress || "N/A"} arrow>
                       <TableCell
@@ -722,6 +722,9 @@ const AdminMemoOrdersPage = () => {
                     <Grid item xs={12} sm={6}>
                       <Typography variant="caption" color="text.secondary">
                         ADDRESS
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedOrder.mobileNo || "—"}
                       </Typography>
                       <Typography variant="body2">
                         {selectedOrder.shippingAddress}
