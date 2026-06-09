@@ -6,10 +6,11 @@ import {
   Grid,
   Paper,
   Button,
-  Stack,
-  Chip,
+  Avatar,
 } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ProductCard from "./ProductCard";
 
 const ProductGrid = ({
@@ -24,149 +25,54 @@ const ProductGrid = ({
   viewMode,
   onAddSingleVariant,
 }) => {
-
   const navigate = useNavigate();
-  return (
-    <Box sx={{ width: "100%" }}>
-      {products.length > 0 ? (
-        viewMode === "list" ? (
-          <Stack spacing={1} sx={{ width: "100%" }}>
-            {products.map((product) => (
-              <Paper
-                key={product._id}
-                elevation={1}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  p: 1.5,
-                  borderRadius: 2,
-                  width: "100%",
-                  transition: "all 0.2s ease",
-                  "&:hover": {
-                    boxShadow: 3,
-                    bgcolor: "grey.50",
-                  },
-                }}
-              >
-                {/* Product Details - Compact */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    flexGrow: 1,
-                    minWidth: 0,
-                    gap: 2,
-                  }}
-                >
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      fontWeight: 600,
-                      minWidth: { xs: 100, sm: 200 },
-                      maxWidth: { xs: 150, sm: 300 },
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {product.productName}
-                  </Typography>
 
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      flexGrow: 1,
-                      display: { xs: "none", md: "block" },
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {product.description}
-                  </Typography>
-
-                  {/* <Chip
-                    label={`${product.variants.length} variant${
-                      product.variants.length > 1 ? "s" : ""
-                    }`}
-                    size="small"
-                    sx={{ display: { xs: "none", sm: "flex" } }}
-                  /> */}
-                </Box>
-
-                {/* Price & Button */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                    flexShrink: 0,
-                  }}
-                >
-                  {/* <Typography
-                    variant="h6"
-                    color="primary"
-                    sx={{ fontWeight: 700, minWidth: 80, textAlign: "right" }}
-                  >
-                    ₹{product.variants[0]?.price?.toFixed(2)}
-                  </Typography> */}
-
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => {
-                      navigate(`/products/${product._id}`);
-                    }}
-                    sx={{
-                      borderRadius: 2,
-                      px: 2,
-                      py: 0.75,
-                      whiteSpace: "nowrap",
-                      fontWeight: 600,
-                      textTransform: "none",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    Show All Products
-                  </Button>
-                </Box>
-              </Paper>
-            ))}
-          </Stack>
-        ) : (
-          <Grid container spacing={2}>
-            {products.map((product, index) => (
-              <Grid item key={product._id} xs={6} sm={4} md={3} lg={2.4} xl={2}>
-                <ProductCard
-                  product={product}
-                  categories={categories}
-                  index={index}
-                  isAdmin={isAdmin}
-                  isAuthenticated={isAuthenticated}
-                  onAddToCart={onAddToCart}
-                  onAddSingleVariant={onAddSingleVariant}
-                />
-              </Grid>
-            ))}
-          </Grid>
-        )
-      ) : (
+  if (products.length === 0) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          py: 10,
+          px: 2,
+        }}
+      >
         <Paper
+          elevation={0}
           sx={{
-            p: 6,
+            p: { xs: 4, sm: 6 },
             textAlign: "center",
-            borderRadius: 3,
-            background: "linear-gradient(145deg, #f8f9fa, #e9ecef)",
+            borderRadius: 4,
+            background: "linear-gradient(145deg, #f8faff, #f0f4ff)",
+            border: "1.5px dashed rgba(99,102,241,0.25)",
+            maxWidth: 420,
+            width: "100%",
           }}
         >
-          <Box sx={{ fontSize: "4rem", mb: 2, opacity: 0.5 }}>😔</Box>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
+          <Avatar
+            sx={{
+              width: 64,
+              height: 64,
+              mx: "auto",
+              mb: 2,
+              bgcolor: "rgba(99,102,241,0.1)",
+              color: "primary.main",
+            }}
+          >
+            <InventoryIcon fontSize="large" />
+          </Avatar>
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{ fontWeight: 700, color: "text.primary" }}
+          >
             No Products Found
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Try adjusting your filters
+            {searchTerm || selectedCategory
+              ? "Try adjusting your search or category filters."
+              : "No products are available right now."}
           </Typography>
           {(searchTerm || selectedCategory) && (
             <Button
@@ -174,14 +80,151 @@ const ProductGrid = ({
               size="medium"
               startIcon={<ClearIcon />}
               onClick={onClearFilters}
-              sx={{ borderRadius: 2, px: 3 }}
+              sx={{
+                borderRadius: 2,
+                px: 3,
+                fontWeight: 600,
+                textTransform: "none",
+                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              }}
             >
-              Clear All Filters
+              Clear Filters
             </Button>
           )}
         </Paper>
-      )}
-    </Box>
+      </Box>
+    );
+  }
+
+  /* ── List view ── */
+  if (viewMode === "list") {
+    return (
+      <Box sx={{ width: "100%", display: "flex", flexDirection: "column", gap: 1 }}>
+        {products.map((product) => {
+          const categoryName =
+            product.categoryId?.name ||
+            categories.find((c) => c._id === product.categoryId)?.name ||
+            "Uncategorized";
+
+          return (
+            <Paper
+              key={product._id}
+              elevation={0}
+              onClick={() => navigate(`/products/${product._id}`)}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                p: { xs: 1.5, sm: 2 },
+                borderRadius: 2.5,
+                border: "1px solid rgba(0,0,0,0.07)",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                  borderColor: "primary.light",
+                  transform: "translateX(3px)",
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexGrow: 1,
+                  minWidth: 0,
+                  gap: 2,
+                }}
+              >
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 600,
+                    minWidth: { xs: 100, sm: 200 },
+                    maxWidth: { xs: 180, sm: 340 },
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                  }}
+                >
+                  {product.productName}
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{
+                    flexGrow: 1,
+                    display: { xs: "none", md: "block" },
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  {product.description}
+                </Typography>
+              </Box>
+
+              <Button
+                variant="contained"
+                size="small"
+                endIcon={<ArrowForwardIcon sx={{ fontSize: 14 }} />}
+                sx={{
+                  borderRadius: 2,
+                  px: { xs: 1.5, sm: 2 },
+                  py: 0.75,
+                  whiteSpace: "nowrap",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  fontSize: "0.8rem",
+                  flexShrink: 0,
+                  ml: 2,
+                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                  },
+                }}
+              >
+                View
+              </Button>
+            </Paper>
+          );
+        })}
+      </Box>
+    );
+  }
+
+  /* ── Grid view (centered) ── */
+  return (
+    <Grid
+      container
+      spacing={{ xs: 1.5, sm: 2, md: 2.5 }}
+      sx={{
+        width: "100%",
+        margin: "0 auto",
+        justifyContent: "center",
+      }}
+    >
+      {products.map((product, index) => (
+        <Grid
+          key={product._id}
+          size={{ xs: 12, sm: 12, md: 6, lg: 4, xl: 3 }}
+          sx={{ display: "flex", justifyContent: "center" }}
+        >
+          <ProductCard
+            product={product}
+            categories={categories}
+            index={index}
+            isAdmin={isAdmin}
+            isAuthenticated={isAuthenticated}
+            onAddToCart={onAddToCart}
+            onAddSingleVariant={onAddSingleVariant}
+          />
+        </Grid>
+      ))}
+    </Grid>
   );
 };
 

@@ -9,6 +9,8 @@ import {
 } from "@mui/material";
 import { styled, alpha } from "@mui/material/styles";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
+import Lottie from "lottie-react";
+import gearsAnimation from "../../lottie-animations/settings-gears.json";
 
 const StyledCard = styled(Card)(({ theme }) => ({
   width: "250px",
@@ -33,22 +35,40 @@ const ProductCard = ({ product, categoryName, onSelect }) => {
   const priceDisplay =
     minPrice !== maxPrice ? `₹${minPrice} - ₹${maxPrice}` : `₹${minPrice}`;
 
+  const displayImage = mainVariant?.imageUrl || null;
+
   return (
     <StyledCard onClick={() => onSelect(product)}>
-      {/* Image */}
-      <CardMedia
-        component="img"
-        sx={{
-          height: 180,
-          objectFit: "contain",
-          background: "#f5f5f5",
-          p: 1,
-        }}
-        image={
-          mainVariant?.imageUrl ||
-          "https://via.placeholder.com/400x300?text=No+Image"
-        }
-      />
+      {/* Image or Lottie fallback */}
+      {displayImage ? (
+        <CardMedia
+          component="img"
+          sx={{
+            height: 180,
+            objectFit: "contain",
+            background: "#f5f5f5",
+            p: 1,
+          }}
+          image={displayImage}
+        />
+      ) : (
+        <Box
+          sx={{
+            height: 180,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%)",
+          }}
+        >
+          <Lottie
+            animationData={gearsAnimation}
+            loop
+            autoplay
+            style={{ width: 120, height: 120 }}
+          />
+        </Box>
+      )}
 
       <CardContent>
         {/* Category */}

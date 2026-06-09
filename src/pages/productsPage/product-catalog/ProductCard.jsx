@@ -1,49 +1,57 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
-  CardMedia,
   CardContent,
   Typography,
   Box,
   Chip,
-  Stack,
-  Button, // ADDED: Button import
+  Button,
 } from "@mui/material";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
-import EditIcon from "@mui/icons-material/Edit"; // ADDED: Edit icon import
+import EditIcon from "@mui/icons-material/Edit";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { styled, alpha } from "@mui/material/styles";
+import Lottie from "lottie-react";
+import gearsAnimation from "../../../lottie-animations/settings-gears.json";
 
 const StyledCard = styled(Card)(({ theme }) => ({
-  width: "320px",
-  minHeight: "150px",
+  width: "300px",
+  height: "340px",
   display: "flex",
   flexDirection: "column",
-  borderRadius: "20px",
+  borderRadius: "16px",
   overflow: "hidden",
-  transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-  border: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+  transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+  border: `1.5px solid ${alpha(theme.palette.primary.main, 0.08)}`,
+  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
   cursor: "pointer",
+  background: theme.palette.background.paper,
+  [theme.breakpoints.down("sm")]: {
+    width: "100%",
+    height: "auto",
+    minHeight: "300px",
+  },
   "&:hover": {
-    transform: "translateY(-8px)",
-    boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
-    borderColor: alpha(theme.palette.primary.main, 0.3),
+    transform: "translateY(-6px)",
+    boxShadow: "0 16px 48px rgba(0,0,0,0.13)",
+    borderColor: alpha(theme.palette.primary.main, 0.28),
     "& .product-image": {
-      transform: "scale(1.08)",
+      transform: "scale(1.06)",
+    },
+    "& .view-btn": {
+      opacity: 1,
+      transform: "translateY(0)",
     },
   },
 }));
 
-const StyledCardMedia = styled(CardMedia)({
-  height: 240,
-  minHeight: 240,
-  maxHeight: 240,
+const ImageBox = styled(Box)({
   position: "relative",
   overflow: "hidden",
-  "&.product-image": {
-    transition: "transform 0.5s ease",
-  },
+  width: "100%",
+  height: "160px",
+  flexShrink: 0,
 });
 
 const ProductCard = ({
@@ -55,6 +63,22 @@ const ProductCard = ({
   onAddSingleVariant,
 }) => {
   const navigate = useNavigate();
+  const cardRef = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.08 }
+    );
+    if (cardRef.current) observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const categoryName =
     product.categoryId?.name ||
@@ -62,160 +86,183 @@ const ProductCard = ({
     "Uncategorized";
 
   const mainVariant = product?.variants?.[0] || {};
-  const hasMultipleVariants = product?.variants?.length > 1;
-  const totalStock = product?.variants?.reduce((sum, v) => sum + v.stockQty, 0);
-  const isOutOfStock = totalStock === 0;
 
-  const prices = product?.variants?.map((v) => v.price);
-  const minPrice = prices?.length ? Math.min(...prices) : 0;
-  const maxPrice = prices?.length ? Math.max(...prices) : 0;
-  const priceDisplay = hasMultipleVariants && minPrice !== maxPrice
-    ? `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
-    : `₹${mainVariant ? mainVariant.price?.toFixed(2) || "0.00" : "N/A"}`;
+  const displayImage =
+    mainVariant?.imageUrl ||
+    (product.imageUrl &&
+    product.imageUrl !== "https://example.com/default-product.jpg"
+      ? product.imageUrl
+      : null);
 
-  const defaultImages = [
-    "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660477/fs/Fs3_iros0a.jpg",
-    "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660467/fs/Fs2_n5g4lm.webp",
-    "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660468/fs/Fs4_wnnaxc.jpg",
-    "https://res.cloudinary.com/ddwsobxhr/image/upload/v1765660467/fs/Fs1_atrhyk.webp",
-  ];
-  
-  const getDefaultImageForProduct = (productId) => {
-    if (!productId) return defaultImages[0];
-
-    // Create a simple hash from product ID to pick consistent image
-    const hash = Array.from(productId).reduce((hash, char) => {
-      return char.charCodeAt(0) + ((hash << 5) - hash);
-    }, 0);
-
-    const index = Math.abs(hash) % defaultImages.length;
-    return defaultImages[index];
-  };
-  
-  const getRandomDefaultImage = () => {
-    const randomIndex = Math.floor(Math.random() * defaultImages.length);
-    return defaultImages[randomIndex];
-  };
-  
-  const pickedImage = product.imageUrl === "https://example.com/default-product.jpg" ? getDefaultImageForProduct(product._id) : product.imageUrl || getRandomDefaultImage();
-  
-  // Handle update button click
   const handleUpdateClick = (e) => {
-    e.stopPropagation(); // Prevent card navigation
+    e.stopPropagation();
     navigate(`/product/update/${product._id}`);
   };
 
   return (
-    <StyledCard onClick={() => navigate(`/products/${product._id}`)}>
-      <Box sx={{ position: "relative" }}>
-        <StyledCardMedia
-          component="img"
-          image={mainVariant?.imageUrl || pickedImage}
-          alt={product.productName}
-          className="product-image"
-        />
+    <StyledCard
+      ref={cardRef}
+      onClick={() => navigate(`/products/${product._id}`)}
+      sx={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(20px)",
+        transition:
+          "opacity 0.45s ease, transform 0.45s ease, box-shadow 0.35s ease, border-color 0.35s ease",
+      }}
+    >
+      {/* ─── Image / Lottie area ─── */}
+      <ImageBox>
+        {displayImage ? (
+          <Box
+            component="img"
+            src={displayImage}
+            alt={product.productName}
+            className="product-image"
+            sx={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transition: "transform 0.5s ease",
+            }}
+          />
+        ) : (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background:
+                "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #f0f9ff 100%)",
+            }}
+          >
+            <Lottie
+              animationData={gearsAnimation}
+              loop
+              autoplay
+              style={{ width: "55%", maxWidth: 140 }}
+            />
+          </Box>
+        )}
 
-        <Box sx={{ position: "absolute", top: 12, left: 12, zIndex: 1 }}>
+        {/* Category chip */}
+        <Box sx={{ position: "absolute", top: 10, left: 10, zIndex: 1 }}>
           <Chip
-            icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
+            icon={<LocalOfferIcon sx={{ fontSize: 14 }} />}
             label={categoryName}
             size="small"
             sx={{
-              background: "rgba(255,255,255,0.95)",
-              backdropFilter: "blur(10px)",
+              background: "rgba(255,255,255,0.92)",
+              backdropFilter: "blur(8px)",
               fontWeight: 700,
-              fontSize: "0.75rem",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              fontSize: "0.7rem",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+              height: 24,
             }}
           />
         </Box>
-        
+
+        {/* Admin Edit button */}
         {isAdmin && (
-          <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
+          <Box sx={{ position: "absolute", top: 10, right: 10, zIndex: 1 }}>
             <Button
               variant="contained"
               size="small"
-              startIcon={<EditIcon />}
+              startIcon={<EditIcon sx={{ fontSize: 14 }} />}
               onClick={handleUpdateClick}
               sx={{
-                background: "rgba(255,255,255,0.95)",
-                backdropFilter: "blur(10px)",
+                background: "rgba(255,255,255,0.92)",
+                backdropFilter: "blur(8px)",
                 color: "primary.main",
                 fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                "&:hover": {
-                  background: "rgba(255,255,255,1)",
-                }
+                fontSize: "0.7rem",
+                px: 1.2,
+                py: 0.4,
+                minWidth: "unset",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                "&:hover": { background: "rgba(255,255,255,1)" },
               }}
             >
-              Update
+              Edit
             </Button>
           </Box>
         )}
-      </Box>
-      
+      </ImageBox>
+
+      {/* ─── Card body ─── */}
       <CardContent
-        sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}
+        sx={{
+          p: 2,
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: 0.5,
+        }}
       >
-        {/* PRODUCT NAME */}
         <Typography
-          variant="h6"
+          variant="subtitle1"
           component="div"
           sx={{
-            fontWeight: 800,
-            mb: 1.5,
-            fontSize: "1.1rem",
-            lineHeight: 1.3,
-            color: "primary.main",
-            minHeight: 50,
-            maxHeight: 50,
-            overflow: "hidden",
+            fontWeight: 700,
+            fontSize: { xs: "0.85rem", sm: "0.9rem" },
+            lineHeight: 1.35,
+            color: "text.primary",
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            height: "2.7em",
           }}
         >
           {product.productName}
         </Typography>
 
-        {/* DESCRIPTION */}
+        {/* Description – always 2 lines, clipped with ellipsis */}
         <Typography
-          variant="body2"
+          variant="caption"
           color="text.secondary"
           sx={{
-            mb: 2,
-            lineHeight: 1.6,
-            minHeight: 44,
-            maxHeight: 44,
-            overflow: "hidden",
+            lineHeight: 1.5,
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            height: "3em",        // fixed 2-line height
+            textOverflow: "ellipsis",
           }}
         >
-          {product.description}
+          {product.description || "\u00a0"}
         </Typography>
 
-        {/* PRICE - Uncomment if needed */}
-        {/* <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mb: 2 }}
+        {/* View Details CTA */}
+        <Box
+          className="view-btn"
+          sx={{
+            mt: "auto",
+            pt: 1,
+            opacity: { xs: 1, sm: 0 },
+            transform: { xs: "none", sm: "translateY(4px)" },
+            transition: "opacity 0.3s ease, transform 0.3s ease",
+          }}
         >
-          {!isAdmin && isAuthenticated && (
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 900,
-                color: "success.main",
-                fontSize: "1.1rem",
-              }}
-            >
-              {priceDisplay}
-            </Typography>
-          )}
-        </Stack> */}
+          <Button
+            size="small"
+            endIcon={<ArrowForwardIcon sx={{ fontSize: 14 }} />}
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.75rem",
+              textTransform: "none",
+              color: "primary.main",
+              p: 0,
+              "&:hover": { background: "transparent", textDecoration: "underline" },
+            }}
+          >
+            View Details
+          </Button>
+        </Box>
       </CardContent>
     </StyledCard>
   );

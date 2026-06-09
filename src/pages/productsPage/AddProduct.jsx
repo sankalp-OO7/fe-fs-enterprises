@@ -1,515 +1,563 @@
 // src/pages/AddProductPage.jsx
-import React, { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Container,
   Box,
   Typography,
-  Paper,
-  Grid,
   TextField,
   Button,
   CircularProgress,
   Alert,
-  Avatar,
   InputAdornment,
   IconButton,
-  Stack,
-  Divider,
   Autocomplete,
   Snackbar,
-  Card,
-  CardContent,
-} from '@mui/material';
+  Chip,
+} from "@mui/material";
 import {
   Category,
   Image as ImageIcon,
   CloudUpload,
   Visibility,
   LocalOffer,
-  Save,
-  ArrowBack,
   Add as AddIcon,
-  Info,
-} from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
-import { optimizeImage, validateImage } from '../../utils/imageOptimizer';
-import { 
+  ArrowBack,
+  CheckCircle,
+} from "@mui/icons-material";
+import { styled, alpha } from "@mui/material/styles";
+import { optimizeImage, validateImage } from "../../utils/imageOptimizer";
+import {
   createProductAPI,
   fetchCategories,
-  uploadImageDirectAPI
-} from '../../api/product.api';
+  uploadImageDirectAPI,
+} from "../../api/product.api";
 
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
+/* ─── Styled helpers ─── */
+const VisuallyHiddenInput = styled("input")({
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
   height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
+  overflow: "hidden",
+  position: "absolute",
   bottom: 0,
   left: 0,
-  whiteSpace: 'nowrap',
+  whiteSpace: "nowrap",
   width: 1,
 });
 
+const GlassCard = styled(Box)(({ theme }) => ({
+  background: theme.palette.background.paper,
+  borderRadius: 20,
+  border: `1.5px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+  boxShadow: "0 4px 32px rgba(79,70,229,0.07)",
+  padding: theme.spacing(3),
+}));
+
+const FieldLabel = styled(Typography)({
+  fontSize: "0.78rem",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  marginBottom: 6,
+  color: "#6366f1",
+});
+
+/* ─── Component ─── */
 const AddProductPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
-  // State for product data
+
   const [productData, setProductData] = useState({
-    productName: '',
-    description: '',
-    categoryId: '',
-    categoryName: '',
-    imageUrl: '',
+    productName: "",
+    description: "",
+    categoryId: "",
+    categoryName: "",
+    imageUrl: "",
   });
 
-  // UI States
   const [imageUploading, setImageUploading] = useState(false);
-  const [imageDialog, setImageDialog] = useState({
-    open: false,
-    currentImage: '',
-  });
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'info',
-  });
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
 
-  // Fetch categories
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ['categories'],
+    queryKey: ["categories"],
     queryFn: fetchCategories,
   });
 
-  // Create product mutation
   const createProductMutation = useMutation({
     mutationFn: (data) => createProductAPI(data),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries(['products']);
-      setSnackbar({
-        open: true,
-        message: `Product "${productData.productName}" created successfully!`,
-        severity: 'success',
-      });
-      
-      // Navigate to the newly created product's edit page
-      setTimeout(() => {
-        navigate(`/products`);
-      }, 1500);
+    onSuccess: () => {
+      queryClient.invalidateQueries(["products"]);
+      setSnackbar({ open: true, message: `"${productData.productName}" created successfully!`, severity: "success" });
+      setTimeout(() => navigate("/products"), 1500);
     },
     onError: (error) => {
-      setSnackbar({
-        open: true,
-        message: `Failed to create product: ${error.message}`,
-        severity: 'error',
-      });
+      setSnackbar({ open: true, message: `Failed: ${error.message}`, severity: "error" });
     },
   });
 
-  // Handle form field changes
   const handleChange = useCallback((field, value) => {
-    setProductData(prev => ({ ...prev, [field]: value }));
+    setProductData((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  // Handle category selection
-  const handleCategoryChange = useCallback((event, newValue) => {
-    setProductData(prev => ({
+  const handleCategoryChange = useCallback((_, newValue) => {
+    setProductData((prev) => ({
       ...prev,
-      categoryId: newValue ? newValue._id : '',
-      categoryName: newValue ? newValue.name : '',
+      categoryId: newValue ? newValue._id : "",
+      categoryName: newValue ? newValue.name : "",
     }));
   }, []);
 
-  // Handle image upload
   const handleImageUpload = useCallback(async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     setImageUploading(true);
     try {
-      // Validate image
       const validation = validateImage(file);
-      if (!validation.isValid) {
-        throw new Error(validation.errors.join(', '));
-      }
-
-      // Optimize image
+      if (!validation.isValid) throw new Error(validation.errors.join(", "));
       const optimizedFile = await optimizeImage(file);
-      
-      // Create FormData for upload
       const formData = new FormData();
-      formData.append('image', optimizedFile);
-      formData.append('folder', 'products/main');
-
-      // Upload image
+      formData.append("image", optimizedFile);
+      formData.append("folder", "products/main");
       const response = await uploadImageDirectAPI(formData);
-      
-      if (!response.success) {
-        throw new Error(response.message || 'Upload failed');
-      }
-
-      // Update product data with new image URL
-      setProductData(prev => ({ 
-        ...prev, 
-        imageUrl: response.data.url 
-      }));
-
-      setSnackbar({
-        open: true,
-        message: 'Product image uploaded successfully!',
-        severity: 'success',
-      });
-
+      if (!response.success) throw new Error(response.message || "Upload failed");
+      setProductData((prev) => ({ ...prev, imageUrl: response.data.url }));
+      setSnackbar({ open: true, message: "Image uploaded!", severity: "success" });
     } catch (error) {
-      console.error('Image upload error:', error);
-      setSnackbar({
-        open: true,
-        message: `Image upload failed: ${error.message}`,
-        severity: 'error',
-      });
+      setSnackbar({ open: true, message: `Upload failed: ${error.message}`, severity: "error" });
     } finally {
       setImageUploading(false);
     }
   }, []);
 
-  // Handle form submission
-  const handleSubmit = useCallback(async (e) => {
-    if (e) e.preventDefault();
-    
-    // Validate form
-    if (!productData.productName.trim()) {
-      setSnackbar({
-        open: true,
-        message: 'Product name is required',
-        severity: 'error',
-      });
-      return;
-    }
+  const handleSubmit = useCallback(
+    async (e) => {
+      e?.preventDefault();
+      if (!productData.productName.trim()) {
+        setSnackbar({ open: true, message: "Product name is required", severity: "error" });
+        return;
+      }
+      if (!productData.categoryId) {
+        setSnackbar({ open: true, message: "Please select a category", severity: "error" });
+        return;
+      }
+      await createProductMutation.mutateAsync(productData);
+    },
+    [productData, createProductMutation]
+  );
 
-    if (!productData.categoryId) {
-      setSnackbar({
-        open: true,
-        message: 'Please select a category',
-        severity: 'error',
-      });
-      return;
-    }
-
-    // Create product
-    await createProductMutation.mutateAsync(productData);
-  }, [productData, createProductMutation]);
-
-  // Find selected category
-  const selectedCategory = categories.find(cat => cat._id === productData.categoryId) || null;
-
+  const selectedCategory = categories.find((c) => c._id === productData.categoryId) || null;
   const isSubmitting = createProductMutation.isPending;
+  const isValid = productData.productName.trim() && productData.categoryId;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Paper sx={{ p: 3, borderRadius: 2 }}>
-          <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-            <Box>
-              <Button
-                startIcon={<ArrowBack />}
-                onClick={() => navigate(-1)}
-                variant="outlined"
-                sx={{ mb: 2 }}
-              >
-                Back
-              </Button>
-              <Typography variant="h4" fontWeight="bold">
-                Add New Product
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Fill in the details to create a new product
-              </Typography>
-            </Box>
-          </Stack>
-        </Paper>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "linear-gradient(160deg, #f0f4ff 0%, #faf5ff 50%, #f0fdf4 100%)",
+        pb: 8,
+      }}
+    >
+      {/* ─── Hero Topbar ─── */}
+      <Box
+        sx={{
+          background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+          px: { xs: 2, sm: 4, md: 6 },
+          py: { xs: 2, sm: 2.5 },
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+        }}
+      >
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "white",
+            backgroundColor: "rgba(255,255,255,0.12)",
+            borderRadius: "12px",
+            p: 1,
+            "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" },
+          }}
+        >
+          <ArrowBack fontSize="small" />
+        </IconButton>
+        <Box>
+          <Typography
+            variant="h6"
+            sx={{ color: "white", fontWeight: 800, fontSize: { xs: "1rem", sm: "1.1rem" }, lineHeight: 1.2 }}
+          >
+            Add New Product
+          </Typography>
+          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.62)", fontSize: "0.72rem" }}>
+            Fill in the details below to create a product
+          </Typography>
+        </Box>
       </Box>
 
-      {/* Messages */}
-      {snackbar.open && (
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        >
-          <Alert
-            severity={snackbar.severity}
-            onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-            sx={{ width: '100%', borderRadius: 2 }}
+      {/* ─── Form Body ─── */}
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{
+          maxWidth: 860,
+          mx: "auto",
+          px: { xs: 2, sm: 3 },
+          pt: { xs: 3, sm: 4 },
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+        }}
+      >
+        {/* ── Product Info Card ── */}
+        <GlassCard>
+          {/* Section header */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: "10px",
+                background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <LocalOffer sx={{ fontSize: 18, color: "white" }} />
+            </Box>
+            <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "text.primary" }}>
+              Product Information
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            {/* Product Name */}
+            <Box>
+              <FieldLabel>Product Name *</FieldLabel>
+              <TextField
+                fullWidth
+                placeholder="e.g. Industrial Safety Helmet"
+                value={productData.productName}
+                onChange={(e) => handleChange("productName", e.target.value)}
+                required
+                disabled={isSubmitting}
+                size="small"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LocalOffer sx={{ fontSize: 17, color: "primary.main" }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+              />
+            </Box>
+
+            {/* Category */}
+            <Box>
+              <FieldLabel>Category *</FieldLabel>
+              <Autocomplete
+                options={categories}
+                getOptionLabel={(o) => o.name}
+                value={selectedCategory}
+                onChange={handleCategoryChange}
+                loading={categoriesLoading}
+                disabled={isSubmitting}
+                size="small"
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select a category…"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <InputAdornment position="start">
+                            <Category sx={{ fontSize: 17, color: "primary.main" }} />
+                          </InputAdornment>
+                          {params.InputProps.startAdornment}
+                        </>
+                      ),
+                    }}
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+                  />
+                )}
+                isOptionEqualToValue={(o, v) => o._id === v._id}
+              />
+            </Box>
+
+            {/* Description */}
+            <Box>
+              <FieldLabel>Description</FieldLabel>
+              <TextField
+                fullWidth
+                placeholder="Describe the product — features, specs, use case…"
+                value={productData.description}
+                onChange={(e) => handleChange("description", e.target.value)}
+                multiline
+                rows={4}
+                disabled={isSubmitting}
+                size="small"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+              />
+            </Box>
+          </Box>
+        </GlassCard>
+
+        {/* ── Image Card ── */}
+        <GlassCard>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: "10px",
+                background: "linear-gradient(135deg,#0ea5e9,#6366f1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ImageIcon sx={{ fontSize: 18, color: "white" }} />
+            </Box>
+            <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "text.primary" }}>
+              Product Image
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 3,
+              alignItems: { xs: "stretch", sm: "flex-start" },
+            }}
           >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      )}
-
-      {/* Product Form */}
-      <Paper sx={{ p: 4, borderRadius: 2 }}>
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={4}>
-            {/* Left Column - Product Details */}
-            <Grid item xs={12} md={8}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                <LocalOffer /> Product Information
-              </Typography>
-              
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Product Name *"
-                    value={productData.productName}
-                    onChange={(e) => handleChange('productName', e.target.value)}
-                    required
-                    disabled={isSubmitting}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LocalOffer fontSize="small" />
-                        </InputAdornment>
-                      ),
+            {/* Preview box */}
+            <Box
+              sx={{
+                width: { xs: "100%", sm: 180 },
+                height: 180,
+                borderRadius: "16px",
+                border: "2px dashed",
+                borderColor: productData.imageUrl ? "primary.main" : "divider",
+                overflow: "hidden",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: productData.imageUrl
+                  ? "transparent"
+                  : "linear-gradient(135deg,#f0f4ff,#e8f0fe)",
+                position: "relative",
+                transition: "border-color 0.3s",
+              }}
+            >
+              {productData.imageUrl ? (
+                <>
+                  <Box
+                    component="img"
+                    src={productData.imageUrl}
+                    alt="Preview"
+                    sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      background: "rgba(99,102,241,0.9)",
+                      borderRadius: "8px",
+                      p: 0.25,
                     }}
-                    helperText="Enter a descriptive name for your product"
-                    error={!productData.productName.trim() && productData.productName !== ''}
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Autocomplete
-                    options={categories}
-                    getOptionLabel={(option) => option.name}
-                    value={selectedCategory}
-                    onChange={handleCategoryChange}
-                    loading={categoriesLoading}
-                    disabled={isSubmitting}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Category *"
-                        required
-                        helperText="Select a category for your product"
-                        error={!productData.categoryId && productData.categoryId !== ''}
-                        InputProps={{
-                          ...params.InputProps,
-                          startAdornment: (
-                            <>
-                              <InputAdornment position="start">
-                                <Category fontSize="small" />
-                              </InputAdornment>
-                              {params.InputProps.startAdornment}
-                            </>
-                          ),
-                        }}
-                      />
-                    )}
-                    isOptionEqualToValue={(option, value) => option._id === value._id}
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Product Description"
-                    value={productData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    multiline
-                    rows={4}
-                    disabled={isSubmitting}
-                    helperText="Describe your product in detail (optional)"
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Image URL"
-                    value={productData.imageUrl}
-                    onChange={(e) => handleChange('imageUrl', e.target.value)}
-                    disabled={isSubmitting}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <ImageIcon fontSize="small" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: productData.imageUrl && (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => setImageDialog({
-                              open: true,
-                              currentImage: productData.imageUrl,
-                            })}
-                          >
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    helperText="Or paste an image URL directly"
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Right Column - Image Upload */}
-            <Grid item xs={12} md={4}>
-              <Card sx={{ borderRadius: 2, height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                    <ImageIcon /> Product Image
-                  </Typography>
-                  
-                  <Box sx={{ textAlign: 'center', mb: 3 }}>
-                    <Avatar
-                      src={productData.imageUrl || '/placeholder-image.jpg'}
-                      variant="rounded"
-                      sx={{
-                        width: 200,
-                        height: 200,
-                        mx: 'auto',
-                        mb: 3,
-                        border: '2px solid',
-                        borderColor: productData.imageUrl ? 'primary.main' : 'grey.300',
-                        borderRadius: 2,
-                      }}
-                    >
-                      {!productData.imageUrl && (
-                        <ImageIcon sx={{ fontSize: 60, color: 'grey.400' }} />
-                      )}
-                    </Avatar>
-                    
-                    <Stack spacing={2}>
-                      <Button
-                        component="label"
-                        variant="contained"
-                        fullWidth
-                        startIcon={imageUploading ? <CircularProgress size={20} /> : <CloudUpload />}
-                        disabled={imageUploading || isSubmitting}
-                      >
-                        Upload Image
-                        <VisuallyHiddenInput
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                        />
-                      </Button>
-                      
-                      {productData.imageUrl && (
-                        <Button
-                          variant="outlined"
-                          fullWidth
-                          startIcon={<Visibility />}
-                          onClick={() => setImageDialog({
-                            open: true,
-                            currentImage: productData.imageUrl,
-                          })}
-                          disabled={isSubmitting}
-                        >
-                          Preview
-                        </Button>
-                      )}
-                    </Stack>
+                  >
+                    <CheckCircle sx={{ fontSize: 18, color: "white" }} />
                   </Box>
+                </>
+              ) : (
+                <Box sx={{ textAlign: "center", p: 2 }}>
+                  <ImageIcon sx={{ fontSize: 40, color: "primary.light", mb: 1 }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
+                    No image yet
+                  </Typography>
+                </Box>
+              )}
+            </Box>
 
-                  {/* Image Guidelines */}
-                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'info.50' }}>
-                    <Typography variant="subtitle2" gutterBottom color="info.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Info fontSize="small" /> Image Guidelines
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" component="div">
-                      <Box component="ul" sx={{ pl: 2, m: 0 }}>
-                        <li>Use high-quality images</li>
-                        <li>Formats: JPG, PNG, WebP</li>
-                        <li>Max size: 20MB</li>
-                        <li>Images auto-optimized</li>
-                      </Box>
-                    </Typography>
-                  </Paper>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+            {/* Upload controls + URL */}
+            <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+              <Button
+                component="label"
+                variant="contained"
+                fullWidth
+                startIcon={imageUploading ? <CircularProgress size={16} color="inherit" /> : <CloudUpload />}
+                disabled={imageUploading || isSubmitting}
+                sx={{
+                  borderRadius: "12px",
+                  py: 1.25,
+                  fontWeight: 700,
+                  textTransform: "none",
+                  background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                  boxShadow: "0 4px 14px rgba(99,102,241,0.35)",
+                  "&:hover": { background: "linear-gradient(135deg,#4f46e5,#7c3aed)" },
+                }}
+              >
+                {imageUploading ? "Uploading…" : "Upload Image"}
+                <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImageUpload} />
+              </Button>
 
-          <Divider sx={{ my: 4 }} />
+              <Box>
+                <FieldLabel>Or paste image URL</FieldLabel>
+                <TextField
+                  fullWidth
+                  placeholder="https://example.com/image.jpg"
+                  value={productData.imageUrl}
+                  onChange={(e) => handleChange("imageUrl", e.target.value)}
+                  disabled={isSubmitting}
+                  size="small"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <ImageIcon sx={{ fontSize: 17, color: "primary.main" }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: productData.imageUrl && (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => setImagePreviewOpen(true)}>
+                          <Visibility sx={{ fontSize: 17 }} />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+                />
+              </Box>
 
-          {/* Action Buttons */}
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
-            <Button
-              onClick={() => navigate(-1)}
-              variant="outlined"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            
-            <Button
-              type="submit"
-              variant="contained"
-              color="success"
-              startIcon={isSubmitting ? <CircularProgress size={20} /> : <AddIcon />}
-              disabled={isSubmitting || !productData.productName.trim() || !productData.categoryId}
-              size="large"
-            >
-              {isSubmitting ? 'Creating...' : 'Create Product'}
-            </Button>
-          </Stack>
-        </form>
-      </Paper>
+              {/* Tips */}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 0.75,
+                }}
+              >
+                {["JPG / PNG / WebP", "Max 20 MB", "Auto-optimized"].map((tip) => (
+                  <Chip
+                    key={tip}
+                    label={tip}
+                    size="small"
+                    sx={{
+                      fontSize: "0.68rem",
+                      height: 22,
+                      bgcolor: "rgba(99,102,241,0.08)",
+                      color: "primary.main",
+                      fontWeight: 600,
+                      border: "none",
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+          </Box>
+        </GlassCard>
 
-      {/* Image Preview Dialog */}
-      {imageDialog.open && (
+        {/* ── Action Buttons ── */}
         <Box
           sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.9)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1300,
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: 2,
+            justifyContent: "flex-end",
           }}
-          onClick={() => setImageDialog({ open: false, currentImage: '' })}
         >
-          <Box sx={{ maxWidth: '90%', maxHeight: '90%', position: 'relative' }}>
+          <Button
+            onClick={() => navigate(-1)}
+            variant="outlined"
+            disabled={isSubmitting}
+            sx={{
+              borderRadius: "12px",
+              px: 3,
+              fontWeight: 600,
+              textTransform: "none",
+              order: { xs: 2, sm: 1 },
+            }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            type="submit"
+            variant="contained"
+            startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <AddIcon />}
+            disabled={isSubmitting || !isValid}
+            sx={{
+              borderRadius: "12px",
+              px: 4,
+              py: 1.25,
+              fontWeight: 700,
+              textTransform: "none",
+              fontSize: "0.95rem",
+              background: isValid
+                ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
+                : undefined,
+              boxShadow: isValid ? "0 4px 18px rgba(99,102,241,0.4)" : undefined,
+              "&:hover": { background: "linear-gradient(135deg,#4f46e5,#7c3aed)" },
+              order: { xs: 1, sm: 2 },
+            }}
+          >
+            {isSubmitting ? "Creating…" : "Create Product"}
+          </Button>
+        </Box>
+      </Box>
+
+      {/* ── Snackbar ── */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+          sx={{ borderRadius: 2, fontWeight: 600 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      {/* ── Full-screen image preview ── */}
+      {imagePreviewOpen && (
+        <Box
+          onClick={() => setImagePreviewOpen(false)}
+          sx={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.88)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1400,
+            cursor: "zoom-out",
+          }}
+        >
+          <Box sx={{ maxWidth: "90%", maxHeight: "90%" }}>
             <img
-              src={imageDialog.currentImage}
+              src={productData.imageUrl}
               alt="Preview"
-              style={{
-                maxWidth: '100%',
-                maxHeight: '90vh',
-                objectFit: 'contain',
-                borderRadius: 8,
-              }}
+              style={{ maxWidth: "100%", maxHeight: "85vh", objectFit: "contain", borderRadius: 12 }}
             />
             <Typography
               variant="caption"
-              sx={{
-                position: 'absolute',
-                bottom: -40,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                color: 'white',
-                opacity: 0.7,
-              }}
+              sx={{ display: "block", textAlign: "center", color: "rgba(255,255,255,0.5)", mt: 1.5 }}
             >
               Click anywhere to close
             </Typography>
           </Box>
         </Box>
       )}
-    </Container>
+    </Box>
   );
 };
 
