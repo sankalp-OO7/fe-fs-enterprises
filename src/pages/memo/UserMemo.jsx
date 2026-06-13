@@ -33,6 +33,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useCart } from "../../context/CartContext";
 import ProductPage from "../productsPage/ProductsPage";
 import axiosClient from "../../api/axiosClient";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 const COMPANY = {
   name: "FS Interprises",
@@ -57,6 +58,7 @@ const UserMemo = () => {
   const [myOrders, setMyOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [deletingOrderId, setDeletingOrderId] = useState(null);
+  const [confirmDeleteOrderId, setConfirmDeleteOrderId] = useState(null); // for confirm dialog
 
   const fetchMyOrders = async () => {
     setOrdersLoading(true);
@@ -75,7 +77,7 @@ const UserMemo = () => {
   }, []);
 
   const handleDeleteMyOrder = async (orderId) => {
-    if (!window.confirm("Delete this completed order?")) return;
+    setConfirmDeleteOrderId(null);
     setDeletingOrderId(orderId);
     try {
       await axiosClient.delete(`/orders/myorders/${orderId}`);
@@ -834,7 +836,7 @@ const UserMemo = () => {
                             size="small"
                             color="error"
                             disabled={deletingOrderId === order._id}
-                            onClick={() => handleDeleteMyOrder(order._id)}
+                            onClick={() => setConfirmDeleteOrderId(order._id)}
                           >
                             {deletingOrderId === order._id ? (
                               <CircularProgress size={16} />
@@ -858,6 +860,19 @@ const UserMemo = () => {
       </Box>
 
       {/* SNACKBAR FOR NOTIFICATIONS */}
+
+      {/* Delete Order Confirm */}
+      <ConfirmDialog
+        open={!!confirmDeleteOrderId}
+        title="Delete Order"
+        message="Are you sure you want to delete this completed order? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        confirmColor="error"
+        icon="delete"
+        onConfirm={() => handleDeleteMyOrder(confirmDeleteOrderId)}
+        onCancel={() => setConfirmDeleteOrderId(null)}
+      />
 
       <Snackbar
         open={snackbar.open}

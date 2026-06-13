@@ -37,6 +37,7 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 const roles = ["user", "admin", "viewer"];
 
@@ -59,6 +60,9 @@ const UserManagement = () => {
 
   // Password visibility toggle
   const [showPassword, setShowPassword] = useState(false);
+
+  // Delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState(null); // holds user id to delete
 
   // Password save reminder popup state
   const [passwordReminderOpen, setPasswordReminderOpen] = useState(false);
@@ -144,8 +148,7 @@ const UserManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm(`Are you sure you want to delete user ID: ${id}?`))
-      return;
+    setConfirmDelete(null);
     setError("");
     try {
       await axiosClient.delete(`/users/${id}`);
@@ -245,7 +248,7 @@ const UserManagement = () => {
                     </IconButton>
                     <IconButton
                       color="error"
-                      onClick={() => handleDelete(u._id)}
+                      onClick={() => setConfirmDelete(u._id)}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -496,7 +499,21 @@ const UserManagement = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* ───────── Delete Confirmation ───────── */}
+        <ConfirmDialog
+          open={!!confirmDelete}
+          title="Delete User"
+          message="Are you sure you want to permanently delete this user? This action cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          confirmColor="error"
+          icon="delete"
+          onConfirm={() => handleDelete(confirmDelete)}
+          onCancel={() => setConfirmDelete(null)}
+        />
       </Paper>
+
     </Container>
   );
 };

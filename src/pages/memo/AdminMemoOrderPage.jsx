@@ -41,6 +41,7 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import PrintIcon from "@mui/icons-material/Print";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axiosClient from "../../api/axiosClient";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 const COMPANY = {
   name: "FS Interprises",
@@ -164,6 +165,7 @@ const AdminMemoOrdersPage = () => {
   const [orderDetailOpen, setOrderDetailOpen] = useState(false);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
   const [deleteOrderLoading, setDeleteOrderLoading] = useState(false);
+  const [confirmDeleteOrderId, setConfirmDeleteOrderId] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
@@ -361,7 +363,7 @@ const AdminMemoOrdersPage = () => {
   };
 
   const handleDeleteOrder = async (orderId) => {
-    if (!window.confirm("Delete this order permanently? This cannot be undone.")) return;
+    setConfirmDeleteOrderId(null);
     setDeleteOrderLoading(true);
     try {
       await axiosClient.delete(`/orders/${orderId}`);
@@ -1054,7 +1056,7 @@ const AdminMemoOrdersPage = () => {
           </Button>
           {selectedOrder?.status === "Completed" && (
             <Button
-              onClick={() => handleDeleteOrder(selectedOrder._id)}
+              onClick={() => setConfirmDeleteOrderId(selectedOrder._id)}
               color="error"
               variant="contained"
               startIcon={<DeleteIcon />}
@@ -1084,7 +1086,21 @@ const AdminMemoOrdersPage = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      {/* Delete Order Confirm */}
+      <ConfirmDialog
+        open={!!confirmDeleteOrderId}
+        title="Delete Order"
+        message="Permanently delete this order? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        confirmColor="error"
+        icon="delete"
+        onConfirm={() => handleDeleteOrder(confirmDeleteOrderId)}
+        onCancel={() => setConfirmDeleteOrderId(null)}
+      />
     </Container>
+
   );
 };
 

@@ -37,6 +37,7 @@ import {
   uploadImageAPI,
   uploadImageDirectAPI,
 } from "../../../api/product.api";
+import ConfirmDialog from "../../../components/ConfirmDialog";
 
 // Lazy load components
 const ProductDetailsPage = lazy(
@@ -109,6 +110,9 @@ const ProductUpdatePage = () => {
   });
   const [isDirty, setIsDirty] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  // Confirm dialogs
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   // React Query: Fetch product and variants
   const {
     data: productResponse,
@@ -443,12 +447,10 @@ const handleImageUpload = async (file, target = "product") => {
           startIcon={<ArrowBack />}
           onClick={() => {
             if (isDirty) {
-              const confirmed = window.confirm(
-                "You have unsaved changes. Do you want to leave without saving?",
-              );
-              if (!confirmed) return;
+              setConfirmLeave(true);
+            } else {
+              navigate(-1);
             }
-            navigate(-1);
           }}
           sx={{ mb: 2 }}
           variant="outlined"
@@ -498,17 +500,7 @@ const handleImageUpload = async (file, target = "product") => {
               <Button
                 variant="outlined"
                 color="warning"
-                onClick={() => {
-                  const confirmed = window.confirm(
-                    "Are you sure you want to discard all changes?",
-                  );
-                  if (confirmed) {
-                    setProductData(null);
-                    setVariants([]);
-                    refetch();
-                    setIsDirty(false);
-                  }
-                }}
+                onClick={() => setConfirmDiscard(true)}
               >
                 Discard Changes
               </Button>
@@ -591,6 +583,37 @@ const handleImageUpload = async (file, target = "product") => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      {/* Confirm: Leave with unsaved changes */}
+      <ConfirmDialog
+        open={confirmLeave}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave without saving?"
+        confirmLabel="Leave"
+        cancelLabel="Stay"
+        confirmColor="warning"
+        icon="warning"
+        onConfirm={() => { setConfirmLeave(false); navigate(-1); }}
+        onCancel={() => setConfirmLeave(false)}
+      />
+
+      {/* Confirm: Discard changes */}
+      <ConfirmDialog
+        open={confirmDiscard}
+        title="Discard Changes"
+        message="Are you sure you want to discard all unsaved changes? This cannot be undone."
+        confirmLabel="Discard"
+        cancelLabel="Keep Editing"
+        confirmColor="error"
+        icon="delete"
+        onConfirm={() => {
+          setConfirmDiscard(false);
+          setProductData(null);
+          setVariants([]);
+          refetch();
+          setIsDirty(false);
+        }}
+        onCancel={() => setConfirmDiscard(false)}
+      />
     </Container>
   );
 };
