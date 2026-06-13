@@ -745,43 +745,39 @@ const AdminMemoOrdersPage = () => {
         </TableContainer>
       </Card>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            mt: 3,
-            animation: `${fadeIn} 1.4s ease`,
-          }}
-        >
+      {/* Pagination + rows per page */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2, mt: 3, px: 1 }}>
+        {/* Rows per page */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Typography variant="body2" color="text.secondary" fontWeight={600}>Rows per page:</Typography>
+          <FormControl size="small">
+            <Select
+              value={rowsPerPage}
+              onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
+              sx={{ borderRadius: 2, fontWeight: 700, minWidth: 70 }}
+            >
+              {[10, 25, 50].map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <Typography variant="body2" color="text.secondary">
+            {Math.min((page - 1) * rowsPerPage + 1, filteredAndSortedOrders.length)}–{Math.min(page * rowsPerPage, filteredAndSortedOrders.length)} of {filteredAndSortedOrders.length}
+          </Typography>
+        </Box>
+
+        {/* Page navigation */}
+        {totalPages > 1 && (
           <MuiPagination
-            count={totalPages}
-            page={page}
-            onChange={(e, value) => setPage(value)}
-            color="primary"
-            size="large"
-            showFirstButton
-            showLastButton
+            count={totalPages} page={page}
+            onChange={(_, v) => setPage(v)}
+            color="primary" size="medium" showFirstButton showLastButton
             sx={{
-              "& .MuiPaginationItem-root": {
-                fontWeight: 600,
-                borderRadius: 2,
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateY(-2px)",
-                },
-              },
-              "& .Mui-selected": {
-                background:
-                  "linear-gradient(135deg, #2196F3 0%, #21CBF3 100%) !important",
-                color: "white",
-                boxShadow: "0 4px 12px rgba(33, 150, 243, 0.4)",
-              },
+              "& .MuiPaginationItem-root": { fontWeight: 600, borderRadius: 2 },
+              "& .Mui-selected": { background: "linear-gradient(135deg,#2196F3,#21CBF3)!important", color: "white", boxShadow: "0 4px 12px rgba(33,150,243,0.4)" },
             }}
           />
-        </Box>
-      )}
+        )}
+      </Box>
+
 
       {/* Order Detail Dialog */}
       <Dialog
