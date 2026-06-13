@@ -61,6 +61,7 @@ const ProductCard = ({
   isAuthenticated,
   onAddToCart,
   onAddSingleVariant,
+  onProductClick, // optional override — used in memo popup context
 }) => {
   const navigate = useNavigate();
   const cardRef = useRef(null);
@@ -102,7 +103,7 @@ const ProductCard = ({
   return (
     <StyledCard
       ref={cardRef}
-      onClick={() => navigate(`/products/${product._id}`)}
+      onClick={() => onProductClick ? onProductClick(product) : navigate(`/products/${product._id}`)}
       sx={{
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(20px)",

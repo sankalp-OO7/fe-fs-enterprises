@@ -24,6 +24,7 @@ const ProductGrid = ({
   onAddToCart,
   viewMode,
   onAddSingleVariant,
+  onProductClick, // optional override
 }) => {
   const navigate = useNavigate();
 
@@ -110,7 +111,7 @@ const ProductGrid = ({
             <Paper
               key={product._id}
               elevation={0}
-              onClick={() => navigate(`/products/${product._id}`)}
+              onClick={() => onProductClick ? onProductClick(product) : navigate(`/products/${product._id}`)}
               sx={{
                 display: "flex",
                 alignItems: "center",
@@ -171,6 +172,7 @@ const ProductGrid = ({
                 variant="contained"
                 size="small"
                 endIcon={<ArrowForwardIcon sx={{ fontSize: 14 }} />}
+                onClick={(e) => { e.stopPropagation(); onProductClick ? onProductClick(product) : navigate(`/products/${product._id}`); }}
                 sx={{
                   borderRadius: 2,
                   px: { xs: 1.5, sm: 2 },
@@ -221,6 +223,7 @@ const ProductGrid = ({
             isAuthenticated={isAuthenticated}
             onAddToCart={onAddToCart}
             onAddSingleVariant={onAddSingleVariant}
+            onProductClick={onProductClick}
           />
         </Grid>
       ))}

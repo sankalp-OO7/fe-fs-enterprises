@@ -31,9 +31,9 @@ import AddIcon from "@mui/icons-material/Add";
 import PrintIcon from "@mui/icons-material/Print";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useCart } from "../../context/CartContext";
-import ProductPage from "../productsPage/ProductsPage";
 import axiosClient from "../../api/axiosClient";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import MemoProductBrowser from "../../components/memo/MemoProductBrowser";
 
 const COMPANY = {
   name: "FS Interprises",
@@ -48,11 +48,8 @@ const UserMemo = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [confirmOrder, setConfirmOrder] = useState(false); // pre-place confirmation
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   // My Orders (history)
   const [myOrders, setMyOrders] = useState([]);
@@ -102,13 +99,14 @@ const UserMemo = () => {
     clearCart,
   } = useCart();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    gstNo: "",
-    billType: "INVOICE",
-    materialType: "Cash",
-    mobileNo: "",
-    address: "",
+  const SAVED_FORM_KEY = "memo_form_data";
+
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SAVED_FORM_KEY);
+      if (saved) return { ...JSON.parse(saved), billType: JSON.parse(saved).billType || "INVOICE", materialType: JSON.parse(saved).materialType || "Cash" };
+    } catch {}
+    return { name: "", gstNo: "", billType: "INVOICE", materialType: "Cash", mobileNo: "", address: "" };
   });
 
   /* ---------------- VALIDATION FUNCTIONS ---------------- */
@@ -176,16 +174,18 @@ const UserMemo = () => {
   /* ---------------- FORM HANDLERS ---------------- */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    let updated;
     if (name === "mobileNo") {
       const digitsOnly = value.replace(/\D/g, "");
-      if (digitsOnly.length <= 10) {
-        setFormData((prev) => ({ ...prev, [name]: digitsOnly }));
-      }
-      if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+      if (digitsOnly.length > 10) return;
+      updated = { ...formData, [name]: digitsOnly };
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-      if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+      updated = { ...formData, [name]: value };
     }
+    setFormData(updated);
+    // Persist to localStorage (skip billType/materialType — those are per-order)
+    localStorage.setItem(SAVED_FORM_KEY, JSON.stringify(updated));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleQuantityChange = (cartItemId, value) => {
@@ -273,13 +273,11 @@ const UserMemo = () => {
         };
 
         clearCart();
-        setFormData({
-          name: "",
-          gstNo: "",
-          billType: "INVOICE",
-          materialType: "Cash",
-          mobileNo: "",
-          address: "",
+        // Keep form data in localStorage but reset only order-transient fields
+        setFormData(prev => {
+          const persisted = { ...prev };
+          localStorage.setItem(SAVED_FORM_KEY, JSON.stringify(persisted));
+          return persisted;
         });
         setErrors({});
 
@@ -496,13 +494,21 @@ const UserMemo = () => {
         sx={{ mb: 3 }}
       />
 
+      {/* Add Product Button */}
       <Button
-        variant="outlined"
+        variant="contained"
         startIcon={<AddIcon />}
         onClick={() => setOpenDialog(true)}
-        sx={{ mb: 2 }}
+        sx={{
+          mb: 2,
+          background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+          borderRadius: 2.5, fontWeight: 700, textTransform: "none", px: 3,
+          boxShadow: "0 4px 14px rgba(99,102,241,0.35)",
+          "&:hover": { background: "linear-gradient(135deg,#4f46e5,#7c3aed)", transform: "translateY(-1px)" },
+          transition: "all 0.2s",
+        }}
       >
-        Add Product
+        🛍️ Browse &amp; Add Products
       </Button>
 
       {/* CART TABLE */}
@@ -579,34 +585,42 @@ const UserMemo = () => {
         <Button
           variant="contained"
           size="large"
-          onClick={handlePlaceOrder}
-          disabled={
-            isSubmitting ||
-            !formData.name ||
-            !formData.mobileNo ||
-            !formData.address ||
-            !cart.length
-          }
-          startIcon={
-            isSubmitting ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : undefined
-          }
-          sx={{ px: 4, py: 1.5, fontSize: "1.1rem" }}
+          onClick={() => {
+            if (!validateForm()) {
+              setSnackbar({ open: true, message: "Please fix the validation errors", severity: "error" });
+              return;
+            }
+            if (!cart.length) {
+              setSnackbar({ open: true, message: "Cart is empty", severity: "error" });
+              return;
+            }
+            setConfirmOrder(true);
+          }}
+          disabled={isSubmitting || !formData.name || !formData.mobileNo || !formData.address || !cart.length}
+          startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : undefined}
+          sx={{ px: 4, py: 1.5, fontSize: "1.1rem", borderRadius: 2.5, fontWeight: 700,
+            background: "linear-gradient(135deg,#16a34a,#15803d)",
+            "&:hover": { background: "linear-gradient(135deg,#15803d,#166534)" } }}
         >
           {isSubmitting ? "Placing Order…" : "Place Order"}
         </Button>
       </Box>
 
-      {/* PRODUCT DIALOG */}
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        fullWidth
-        maxWidth="md"
-      >
-        <ProductPage isAuthenticated />
-      </Dialog>
+      {/* PRODUCT BROWSER — two-level popup */}
+      <MemoProductBrowser open={openDialog} onClose={() => setOpenDialog(false)} />
+
+      {/* ORDER CONFIRMATION */}
+      <ConfirmDialog
+        open={confirmOrder}
+        title="Confirm Order"
+        message={`Place order for ${cart.length} item(s) totalling ₹${calculateEstimateCost()} for ${formData.name}?`}
+        confirmLabel="Yes, Place Order"
+        cancelLabel="Review Again"
+        confirmColor="success"
+        icon="warning"
+        onConfirm={() => { setConfirmOrder(false); handlePlaceOrder(); }}
+        onCancel={() => setConfirmOrder(false)}
+      />
 
       {/* SUCCESS POPUP */}
       <Dialog

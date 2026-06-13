@@ -22,7 +22,7 @@ import { fetchProducts, fetchCategories } from "../../api/product.api";
 
 const ITEMS_PER_PAGE = 20;
 
-const ProductView = ({ isAdmin, isAuthenticated }) => {
+const ProductView = ({ isAdmin, isAuthenticated, onProductClick }) => {
   const [variantProduct, setVariantProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -255,6 +255,7 @@ const ProductView = ({ isAdmin, isAuthenticated }) => {
           onAddToCart={handleAddToCart}
           viewMode={viewMode}
           onAddSingleVariant={handleSingleVariantAdd}
+          onProductClick={onProductClick}
         />
 
         {/* ─── Pagination ─── */}
