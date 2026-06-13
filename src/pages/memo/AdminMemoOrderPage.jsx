@@ -38,7 +38,17 @@ import CloseIcon from "@mui/icons-material/Close";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import SearchIcon from "@mui/icons-material/Search";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import PrintIcon from "@mui/icons-material/Print";
+import DeleteIcon from "@mui/icons-material/Delete";
 import axiosClient from "../../api/axiosClient";
+
+const COMPANY = {
+  name: "FS Interprises",
+  address: "Your Business Address Here",
+  phone: "+91 XXXXXXXXXX",
+  email: "info@fs-interprises.com",
+  gstin: "GSTIN Number",
+};
 
 // Animations
 const fadeIn = keyframes`
@@ -153,6 +163,7 @@ const AdminMemoOrdersPage = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderDetailOpen, setOrderDetailOpen] = useState(false);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const [deleteOrderLoading, setDeleteOrderLoading] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
@@ -230,10 +241,142 @@ const AdminMemoOrdersPage = () => {
     setOrderDetailOpen(true);
   };
 
+  const handlePrintOrder = (order) => {
+    if (!order) return;
+    const printWindow = window.open("", "_blank", "width=800,height=700");
+    if (!printWindow) return;
+
+    const itemRows = order.items
+      .map((item, i) => {
+        const withGst = (item.priceWithGst ?? item.price) * item.quantity;
+        const withoutGst = (item.priceWithoutGst ?? item.price) * item.quantity;
+        return `
+        <tr style="background:${i % 2 === 0 ? "#f9f9f9" : "#fff"}">
+          <td style="padding:8px 12px;border-bottom:1px solid #eee">${item.productId?.name || "Product N/A"}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">₹${withGst.toFixed(2)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">₹${withoutGst.toFixed(2)}</td>
+        </tr>`;
+      })
+      .join("");
+
+    const totalWithGst = order.items.reduce((s, it) => s + (it.priceWithGst ?? it.price) * it.quantity, 0);
+    const totalWithoutGst = order.items.reduce((s, it) => s + (it.priceWithoutGst ?? it.price) * it.quantity, 0);
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Order - ${COMPANY.name}</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Arial, sans-serif; color: #222; padding: 32px; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+          .company-name { font-size: 26px; font-weight: 800; color: #1e3c72; }
+          .company-sub { font-size: 12px; color: #555; margin-top: 4px; }
+          .invoice-title { font-size: 20px; font-weight: 700; color: #333; text-align: right; }
+          .invoice-meta { font-size: 12px; color: #555; text-align: right; margin-top: 4px; }
+          .divider { border: none; border-top: 2px solid #1e3c72; margin: 20px 0; }
+          .section-title { font-size: 13px; font-weight: 700; color: #1e3c72; text-transform: uppercase; margin-bottom: 6px; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+          .info-box p { font-size: 13px; line-height: 1.7; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          thead { background: #1e3c72; color: white; }
+          thead th { padding: 10px 12px; text-align: left; font-size: 13px; }
+          thead th:nth-child(2) { text-align: center; }
+          thead th:nth-child(3), thead th:nth-child(4) { text-align: right; }
+          .total-row td { padding: 10px 12px; font-weight: 700; background: #f0f4ff; font-size: 14px; }
+          .badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+          .badge-completed { background: #d1fae5; color: #065f46; }
+          .badge-pending { background: #fef3c7; color: #92400e; }
+          .badge-cancelled { background: #fee2e2; color: #991b1b; }
+          .footer { margin-top: 40px; font-size: 11px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 16px; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="company-name">${COMPANY.name}</div>
+            <div class="company-sub">${COMPANY.address}<br>${COMPANY.phone} | ${COMPANY.email}<br>GSTIN: ${COMPANY.gstin}</div>
+          </div>
+          <div>
+            <div class="invoice-title">${order.billType === "SPECIAL PRICE" ? "ESTIMATE" : "INVOICE"}</div>
+            <div class="invoice-meta">Date: ${new Date(order.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
+            <div class="invoice-meta">Status: <span class="badge badge-${(order.status || "").toLowerCase()}">${order.status}</span></div>
+            <div class="invoice-meta">Payment: ${order.paymentStatus}</div>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="info-grid">
+          <div class="info-box">
+            <div class="section-title">Bill To</div>
+            <p><strong>${order.customerName || order.userId?.username || "Customer"}</strong></p>
+            <p>📞 ${order.mobileNo || "N/A"}</p>
+            ${order.gstNo ? `<p>GSTIN: ${order.gstNo}</p>` : ""}
+            <p>${order.shippingAddress || ""}</p>
+          </div>
+          <div class="info-box">
+            <div class="section-title">Order Info</div>
+            <p>Ordered By: ${order.userId?.username || "N/A"}</p>
+            <p>Email: ${order.userId?.email || "N/A"}</p>
+            <p>Material Type: ${order.materialType || "N/A"}</p>
+            <p>Bill Type: ${order.billType || "N/A"}</p>
+          </div>
+        </div>
+
+        <div class="section-title">Order Items</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>With GST</th>
+              <th>Without GST</th>
+            </tr>
+          </thead>
+          <tbody>${itemRows}</tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="2">TOTAL</td>
+              <td style="text-align:right">₹${totalWithGst.toFixed(2)}</td>
+              <td style="text-align:right">₹${totalWithoutGst.toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="footer">Thank you for your business! — ${COMPANY.name}</div>
+        <script>window.onload = function(){ window.print(); };<\/script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handleCloseOrderDetail = () => {
     setOrderDetailOpen(false);
     setSelectedOrder(null);
   };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm("Delete this order permanently? This cannot be undone.")) return;
+    setDeleteOrderLoading(true);
+    try {
+      await axiosClient.delete(`/orders/${orderId}`);
+      setOrders((prev) => prev.filter((o) => o._id !== orderId));
+      setSnackbarMessage("Order deleted successfully");
+      setSnackbarOpen(true);
+      handleCloseOrderDetail();
+    } catch (err) {
+      setSnackbarMessage(err.response?.data?.message || "Failed to delete order");
+      setSnackbarOpen(true);
+    } finally {
+      setDeleteOrderLoading(false);
+    }
+  };
+
 
   const handleStatusChange = async (orderId, newStatus) => {
     setStatusUpdateLoading(true);
@@ -489,8 +632,9 @@ const AdminMemoOrdersPage = () => {
           animation: `${fadeIn} 1.2s ease`,
         }}
       >
-        <TableContainer sx={{ maxHeight: "calc(100vh - 420px)" }}>
-          <Table stickyHeader size="medium" sx={{ minWidth: 1000 }}>
+        <TableContainer sx={{ maxHeight: "calc(100vh - 420px)", overflowX: "auto" }}>
+          <Table stickyHeader size="medium" sx={{ minWidth: { xs: 700, md: 1000 } }}>
+
             <StyledTableHead>
               <TableRow>
                 <StyledTableCell>Order By</StyledTableCell>
@@ -899,7 +1043,29 @@ const AdminMemoOrdersPage = () => {
           >
             Complete
           </Button>
+          <Button
+            onClick={() => handlePrintOrder(selectedOrder)}
+            color="info"
+            variant="contained"
+            startIcon={<PrintIcon />}
+            sx={{ borderRadius: 2, fontWeight: 600, ml: "auto" }}
+          >
+            Print
+          </Button>
+          {selectedOrder?.status === "Completed" && (
+            <Button
+              onClick={() => handleDeleteOrder(selectedOrder._id)}
+              color="error"
+              variant="contained"
+              startIcon={<DeleteIcon />}
+              disabled={deleteOrderLoading}
+              sx={{ borderRadius: 2, fontWeight: 600 }}
+            >
+              {deleteOrderLoading ? "Deleting…" : "Delete Order"}
+            </Button>
+          )}
         </DialogActions>
+
       </Dialog>
 
       {/* Snackbar */}
