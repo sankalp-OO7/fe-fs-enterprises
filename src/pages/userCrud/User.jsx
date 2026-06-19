@@ -320,7 +320,6 @@ const UserManagement = () => {
               }}
             />
 
-            {/* Role — only "user" shown in create mode; all roles in edit mode */}
             <TextField
               margin="dense"
               select
@@ -332,11 +331,10 @@ const UserManagement = () => {
                 setCurrentUser({ ...currentUser, role: e.target.value })
               }
             >
-              {(isEditMode ? roles : ["user"]).map((role) => (
+              {roles.map((role) => (
                 <MenuItem
                   key={role}
                   value={role}
-                  disabled={!isEditMode && role !== "user"}
                 >
                   {role.charAt(0).toUpperCase() + role.slice(1)}
                 </MenuItem>
@@ -404,7 +402,7 @@ const UserManagement = () => {
             {/* English */}
             <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
               <Typography variant="body2" fontWeight={600}>
-                ⚠️ You will <u>NOT</u> be able to see this password again after
+                You will <u>NOT</u> be able to see this password again after
                 closing this popup. Please save it somewhere safe immediately.
               </Typography>
             </Alert>
@@ -412,7 +410,7 @@ const UserManagement = () => {
             {/* Marathi */}
             <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
               <Typography variant="body2" fontWeight={600}>
-                ⚠️ हा पासवर्ड बंद केल्यानंतर परत पाहता <u>येणार नाही</u>.
+                 हा पासवर्ड बंद केल्यानंतर परत पाहता <u>येणार नाही</u>.
                 कृपया तो आत्ताच कुठेतरी सुरक्षित ठिकाणी नोंदवा.
               </Typography>
             </Alert>
@@ -430,7 +428,7 @@ const UserManagement = () => {
               User Created
             </Typography>
             <Typography variant="body1" fontWeight={700} mb={2}>
-              👤 {createdUsername}
+               {createdUsername}
             </Typography>
 
             <Typography
@@ -482,7 +480,7 @@ const UserManagement = () => {
               sx={{ mt: 1.5, display: "block" }}
             >
               {copied
-                ? "✅ Copied to clipboard! / क्लिपबोर्डवर कॉपी झाले!"
+                ? "Copied to clipboard! / क्लिपबोर्डवर कॉपी झाले!"
                 : "Click the copy icon to copy / कॉपी करण्यासाठी वरील चिन्हावर क्लिक करा"}
             </Typography>
           </DialogContent>
@@ -495,7 +493,7 @@ const UserManagement = () => {
               onClick={() => setPasswordReminderOpen(false)}
               sx={{ borderRadius: 2, fontWeight: 700, py: 1.2 }}
             >
-              ✅ I have saved the password / मी पासवर्ड सेव्ह केला आहे
+               I have saved the password / मी पासवर्ड सेव्ह केला आहे
             </Button>
           </DialogActions>
         </Dialog>
