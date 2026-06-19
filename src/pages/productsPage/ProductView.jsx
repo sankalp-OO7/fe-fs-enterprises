@@ -17,9 +17,10 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import FilterSidebar from "./product-catalog/FilterSidebar";
 import ProductGrid from "./product-catalog/ProductGrid";
 import LoadingSkeleton from "./product-catalog/LoadingSkeleton";
-import { useQuery } from "@tanstack/react-query";
-import { fetchProducts, fetchCategories } from "../../api/product.api";
-
+import { useQuery ,useMutation, useQueryClient} from "@tanstack/react-query";
+import { fetchProducts, fetchCategories , deleteProductWithVarients } from "../../api/product.api";
+import toast from "react-hot-toast";
+import { useConfirm } from "material-ui-confirm";
 const ITEMS_PER_PAGE = 20;
 
 const ProductView = ({ isAdmin, isAuthenticated, onProductClick }) => {
@@ -30,7 +31,8 @@ const ProductView = ({ isAdmin, isAuthenticated, onProductClick }) => {
   const [addToCartDialogOpen, setAddToCartDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [viewMode, setViewMode] = useState("grid");
-
+  const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const handleViewModeChange = (event, newMode) => {
     if (newMode !== null) setViewMode(newMode);
   };
@@ -60,6 +62,22 @@ const ProductView = ({ isAdmin, isAuthenticated, onProductClick }) => {
     queryKey: ["categories"],
     queryFn: fetchCategories,
   });
+
+  // Delete the product(Main group)
+  const deleteMutationForProduct = useMutation({
+  mutationFn: deleteProductWithVarients,
+
+  onSuccess: () => {
+    queryClient.invalidateQueries({
+      queryKey: ["products"],
+    });
+     toast.success("Product deleted successfully");
+  },
+
+  onError: (error) => {
+    toast.error("Failed to delete product");
+  },
+});
 
   const filteredProducts = useMemo(() => {
     let filtered = products;
@@ -98,6 +116,20 @@ const ProductView = ({ isAdmin, isAuthenticated, onProductClick }) => {
     setSearchTerm("");
     setSelectedCategory("");
   };
+
+
+const handleDelete = async (productId) => {
+  const { confirmed } = await confirm({
+    title: "Delete Product",
+    description: "Are you sure you want to delete this product?",
+    confirmationText: "Delete",
+    cancellationText: "Cancel",
+  });
+
+  if (!confirmed) return;
+
+  deleteMutationForProduct.mutate(productId);
+};
 
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
@@ -256,6 +288,7 @@ const ProductView = ({ isAdmin, isAuthenticated, onProductClick }) => {
           viewMode={viewMode}
           onAddSingleVariant={handleSingleVariantAdd}
           onProductClick={onProductClick}
+          onDelete={handleDelete}
         />
 
         {/* ─── Pagination ─── */}

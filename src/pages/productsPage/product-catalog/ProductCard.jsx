@@ -14,6 +14,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { styled, alpha } from "@mui/material/styles";
 import Lottie from "lottie-react";
 import gearsAnimation from "../../../lottie-animations/settings-gears.json";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const StyledCard = styled(Card)(({ theme }) => ({
   width: "300px",
@@ -62,6 +63,7 @@ const ProductCard = ({
   onAddToCart,
   onAddSingleVariant,
   onProductClick, // optional override — used in memo popup context
+  onDelete,
 }) => {
   const navigate = useNavigate();
   const cardRef = useRef(null);
@@ -75,7 +77,7 @@ const ProductCard = ({
           observer.disconnect();
         }
       },
-      { threshold: 0.08 }
+      { threshold: 0.08 },
     );
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
@@ -100,10 +102,20 @@ const ProductCard = ({
     navigate(`/product/update/${product._id}`);
   };
 
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+
+    onDelete?.(product._id);
+  };
+
   return (
     <StyledCard
       ref={cardRef}
-      onClick={() => onProductClick ? onProductClick(product) : navigate(`/products/${product._id}`)}
+      onClick={() =>
+        onProductClick
+          ? onProductClick(product)
+          : navigate(`/products/${product._id}`)
+      }
       sx={{
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(20px)",
@@ -168,7 +180,7 @@ const ProductCard = ({
 
         {/* Admin Edit button */}
         {isAdmin && (
-          <Box sx={{ position: "absolute", top: 10, right: 10, zIndex: 1 }}>
+          <Box sx={{ position: "absolute", top: 10, right: 10, zIndex: 1 , gap: 1 , display: "flex"}}>
             <Button
               variant="contained"
               size="small"
@@ -188,6 +200,27 @@ const ProductCard = ({
               }}
             >
               Edit
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              color="error"
+               sx={{
+                background: "rgba(220, 115, 115, 0.92)",
+                backdropFilter: "blur(8px)",
+                color: "primary.main",
+                fontWeight: 600,
+                fontSize: "0.7rem",
+                px: 1.2,
+                py: 0.4,
+                minWidth: "unset",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                "&:hover": { background: "rgb(191, 133, 133)" },
+              }}
+              startIcon={<DeleteIcon />}
+              onClick={handleDeleteClick}
+            >
+              Delete
             </Button>
           </Box>
         )}
@@ -231,7 +264,7 @@ const ProductCard = ({
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
-            height: "3em",        // fixed 2-line height
+            height: "3em", // fixed 2-line height
             textOverflow: "ellipsis",
           }}
         >
@@ -258,7 +291,10 @@ const ProductCard = ({
               textTransform: "none",
               color: "primary.main",
               p: 0,
-              "&:hover": { background: "transparent", textDecoration: "underline" },
+              "&:hover": {
+                background: "transparent",
+                textDecoration: "underline",
+              },
             }}
           >
             View Details

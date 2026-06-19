@@ -25,6 +25,7 @@ const ProductGrid = ({
   viewMode,
   onAddSingleVariant,
   onProductClick, // optional override
+  onDelete
 }) => {
   const navigate = useNavigate();
 
@@ -224,6 +225,7 @@ const ProductGrid = ({
             onAddToCart={onAddToCart}
             onAddSingleVariant={onAddSingleVariant}
             onProductClick={onProductClick}
+            onDelete={onDelete}
           />
         </Grid>
       ))}

@@ -8,6 +8,7 @@ import Navigation from "./components/Navigation";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import User from "./pages/userCrud/User";
+import { Toaster } from "react-hot-toast";
 
 import "./App.css";
 import ProductsPage from "./pages/productsPage/ProductsPage";
@@ -44,6 +45,7 @@ function App() {
   return (
     <div>
       {" "}
+       <Toaster position="top-middle" />
       <Navigation />
       <Routes>
         <Route path="/register" element={<Register />} />
