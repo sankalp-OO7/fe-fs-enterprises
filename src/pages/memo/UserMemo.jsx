@@ -34,7 +34,7 @@ import { useCart } from "../../context/CartContext";
 import axiosClient from "../../api/axiosClient";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import MemoProductBrowser from "../../components/memo/MemoProductBrowser";
-
+import useAuth from "../../context/useAuth";
 const COMPANY = {
   name: "FS Interprises",
   address: "Your Business Address Here",
@@ -49,48 +49,13 @@ const UserMemo = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
   const [confirmOrder, setConfirmOrder] = useState(false); // pre-place confirmation
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-
-  // My Orders (history)
-  const [myOrders, setMyOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [deletingOrderId, setDeletingOrderId] = useState(null);
-  const [confirmDeleteOrderId, setConfirmDeleteOrderId] = useState(null); // for confirm dialog
-
-  const fetchMyOrders = async () => {
-    setOrdersLoading(true);
-    try {
-      const res = await axiosClient.get("/orders/myorders");
-      setMyOrders(res.data);
-    } catch (err) {
-      console.error("Failed to fetch orders", err);
-    } finally {
-      setOrdersLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMyOrders();
-  }, []);
-
-  const handleDeleteMyOrder = async (orderId) => {
-    setConfirmDeleteOrderId(null);
-    setDeletingOrderId(orderId);
-    try {
-      await axiosClient.delete(`/orders/myorders/${orderId}`);
-      setMyOrders((prev) => prev.filter((o) => o._id !== orderId));
-      setSnackbar({ open: true, message: "Order deleted", severity: "success" });
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: err.response?.data?.message || "Failed to delete order",
-        severity: "error",
-      });
-    } finally {
-      setDeletingOrderId(null);
-    }
-  };
-
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const { user } = useAuth();
+  const userRole = user.role;
 
   const {
     cart = [],
@@ -104,9 +69,21 @@ const UserMemo = () => {
   const [formData, setFormData] = useState(() => {
     try {
       const saved = localStorage.getItem(SAVED_FORM_KEY);
-      if (saved) return { ...JSON.parse(saved), billType: JSON.parse(saved).billType || "INVOICE", materialType: JSON.parse(saved).materialType || "Cash" };
+      if (saved)
+        return {
+          ...JSON.parse(saved),
+          billType: JSON.parse(saved).billType || "INVOICE",
+          materialType: JSON.parse(saved).materialType || "Cash",
+        };
     } catch {}
-    return { name: "", gstNo: "", billType: "INVOICE", materialType: "Cash", mobileNo: "", address: "" };
+    return {
+      name: "",
+      gstNo: "",
+      billType: "INVOICE",
+      materialType: "Cash",
+      mobileNo: "",
+      address: "",
+    };
   });
 
   /* ---------------- VALIDATION FUNCTIONS ---------------- */
@@ -117,7 +94,8 @@ const UserMemo = () => {
 
   const validateGST = (gst) => {
     if (!gst) return true; // GST is optional
-    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    const gstRegex =
+      /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
     return gstRegex.test(gst);
   };
 
@@ -126,7 +104,7 @@ const UserMemo = () => {
   };
 
   const validateAddress = (address) => {
-    return address.trim().length >= 10;
+    return address.trim().length >= 5;
   };
 
   const validateForm = () => {
@@ -145,13 +123,13 @@ const UserMemo = () => {
     }
 
     if (formData.gstNo.trim() && !validateGST(formData.gstNo)) {
-      newErrors.gstNo = "Invalid GST format";
+      newErrors.gstNo = "Invalid GST format ex 22AAAAA0000A1Z5";
     }
 
     if (!formData.address.trim()) {
       newErrors.address = "Shipping address is required";
     } else if (!validateAddress(formData.address)) {
-      newErrors.address = "Address must be at least 10 characters";
+      newErrors.address = "Address must be at least 5 characters";
     }
 
     setErrors(newErrors);
@@ -274,7 +252,7 @@ const UserMemo = () => {
 
         clearCart();
         // Keep form data in localStorage but reset only order-transient fields
-        setFormData(prev => {
+        setFormData((prev) => {
           const persisted = { ...prev };
           localStorage.setItem(SAVED_FORM_KEY, JSON.stringify(persisted));
           return persisted;
@@ -313,7 +291,7 @@ const UserMemo = () => {
         <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">₹${item.price.toFixed(2)}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">₹${(item.price * item.quantity).toFixed(2)}</td>
-      </tr>`
+      </tr>`,
       )
       .join("");
 
@@ -457,9 +435,10 @@ const UserMemo = () => {
           <InputLabel>Bill Type</InputLabel>
           <Select
             name="billType"
-            value={formData.billType}
+            value={userRole === "viewer" ? "INVOICE" : formData.billType}
             onChange={handleInputChange}
             label="Bill Type"
+            disabled={userRole === "viewer"}
           >
             <MenuItem value="INVOICE">Invoice</MenuItem>
             <MenuItem value="SPECIAL PRICE">Special Price</MenuItem>
@@ -502,9 +481,15 @@ const UserMemo = () => {
         sx={{
           mb: 2,
           background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-          borderRadius: 2.5, fontWeight: 700, textTransform: "none", px: 3,
+          borderRadius: 2.5,
+          fontWeight: 700,
+          textTransform: "none",
+          px: 3,
           boxShadow: "0 4px 14px rgba(99,102,241,0.35)",
-          "&:hover": { background: "linear-gradient(135deg,#4f46e5,#7c3aed)", transform: "translateY(-1px)" },
+          "&:hover": {
+            background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
+            transform: "translateY(-1px)",
+          },
           transition: "all 0.2s",
         }}
       >
@@ -527,7 +512,10 @@ const UserMemo = () => {
           <TableBody>
             {cart.length ? (
               cart.map((item) => {
-                const price = getPriceByBillType(item.variant, formData.billType);
+                const price = getPriceByBillType(
+                  item.variant,
+                  formData.billType,
+                );
                 return (
                   <TableRow key={item.id}>
                     <TableCell>
@@ -587,27 +575,56 @@ const UserMemo = () => {
           size="large"
           onClick={() => {
             if (!validateForm()) {
-              setSnackbar({ open: true, message: "Please fix the validation errors", severity: "error" });
+              setSnackbar({
+                open: true,
+                message: "Please fix the validation errors",
+                severity: "error",
+              });
               return;
             }
             if (!cart.length) {
-              setSnackbar({ open: true, message: "Cart is empty", severity: "error" });
+              setSnackbar({
+                open: true,
+                message: "Cart is empty",
+                severity: "error",
+              });
               return;
             }
             setConfirmOrder(true);
           }}
-          disabled={isSubmitting || !formData.name || !formData.mobileNo || !formData.address || !cart.length}
-          startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : undefined}
-          sx={{ px: 4, py: 1.5, fontSize: "1.1rem", borderRadius: 2.5, fontWeight: 700,
+          disabled={
+            isSubmitting ||
+            !formData.name ||
+            !formData.mobileNo ||
+            !formData.address ||
+            !cart.length
+          }
+          startIcon={
+            isSubmitting ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : undefined
+          }
+          sx={{
+            px: 4,
+            py: 1.5,
+            fontSize: "1.1rem",
+            borderRadius: 2.5,
+            fontWeight: 700,
             background: "linear-gradient(135deg,#16a34a,#15803d)",
-            "&:hover": { background: "linear-gradient(135deg,#15803d,#166534)" } }}
+            "&:hover": {
+              background: "linear-gradient(135deg,#15803d,#166534)",
+            },
+          }}
         >
           {isSubmitting ? "Placing Order…" : "Place Order"}
         </Button>
       </Box>
 
       {/* PRODUCT BROWSER — two-level popup */}
-      <MemoProductBrowser open={openDialog} onClose={() => setOpenDialog(false)} />
+      <MemoProductBrowser
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+      />
 
       {/* ORDER CONFIRMATION */}
       <ConfirmDialog
@@ -618,7 +635,10 @@ const UserMemo = () => {
         cancelLabel="Review Again"
         confirmColor="success"
         icon="warning"
-        onConfirm={() => { setConfirmOrder(false); handlePlaceOrder(); }}
+        onConfirm={() => {
+          setConfirmOrder(false);
+          handlePlaceOrder();
+        }}
         onCancel={() => setConfirmOrder(false)}
       />
 
@@ -641,7 +661,10 @@ const UserMemo = () => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <CheckCircleIcon sx={{ fontSize: 32 }} />
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 700, lineHeight: 1.2 }}
+              >
                 Order Placed Successfully!
               </Typography>
               <Typography variant="caption" sx={{ opacity: 0.85 }}>
@@ -742,9 +765,7 @@ const UserMemo = () => {
                   </Box>
                 ))}
                 <Divider sx={{ my: 1 }} />
-                <Box
-                  sx={{ display: "flex", justifyContent: "space-between" }}
-                >
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                   <Typography fontWeight={700}>Grand Total</Typography>
                   <Typography fontWeight={700} color="success.main">
                     ₹{successOrder.totalAmount.toFixed(2)}
@@ -774,119 +795,6 @@ const UserMemo = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* MY ORDER HISTORY */}
-      <Box sx={{ mt: 5 }}>
-        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-          📦 My Order History
-        </Typography>
-
-        {ordersLoading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : myOrders.length === 0 ? (
-          <Typography color="text.secondary" sx={{ py: 2 }}>
-            No orders placed yet.
-          </Typography>
-        ) : (
-          /* Mobile-responsive: horizontal scroll on small screens */
-          <TableContainer
-            component={Paper}
-            sx={{ overflowX: "auto", borderRadius: 2 }}
-          >
-            <Table size="small" sx={{ minWidth: { xs: 500, sm: 700 } }}>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: "#f0f4ff" }}>
-                  <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Customer</TableCell>
-                  {/* Hide some cols on xs for readability */}
-                  <TableCell
-                    sx={{ fontWeight: 700, display: { xs: "none", sm: "table-cell" } }}
-                  >
-                    Bill Type
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Amount</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {myOrders.map((order) => {
-                  const statusColors = {
-                    Pending: "warning",
-                    Completed: "success",
-                    Cancelled: "error",
-                  };
-                  return (
-                    <TableRow key={order._id} hover>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        {new Date(order.createdAt).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </TableCell>
-                      <TableCell>{order.customerName || "—"}</TableCell>
-                      <TableCell
-                        sx={{ display: { xs: "none", sm: "table-cell" } }}
-                      >
-                        {order.billType || "—"}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>
-                        ₹{order.totalAmount?.toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={order.status}
-                          color={statusColors[order.status] || "default"}
-                          size="small"
-                          sx={{ fontWeight: 600 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {order.status === "Completed" ? (
-                          <IconButton
-                            size="small"
-                            color="error"
-                            disabled={deletingOrderId === order._id}
-                            onClick={() => setConfirmDeleteOrderId(order._id)}
-                          >
-                            {deletingOrderId === order._id ? (
-                              <CircularProgress size={16} />
-                            ) : (
-                              <DeleteIcon fontSize="small" />
-                            )}
-                          </IconButton>
-                        ) : (
-                          <Typography variant="caption" color="text.disabled">
-                            —
-                          </Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Box>
-
-      {/* SNACKBAR FOR NOTIFICATIONS */}
-
-      {/* Delete Order Confirm */}
-      <ConfirmDialog
-        open={!!confirmDeleteOrderId}
-        title="Delete Order"
-        message="Are you sure you want to delete this completed order? This action cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        confirmColor="error"
-        icon="delete"
-        onConfirm={() => handleDeleteMyOrder(confirmDeleteOrderId)}
-        onCancel={() => setConfirmDeleteOrderId(null)}
-      />
 
       <Snackbar
         open={snackbar.open}

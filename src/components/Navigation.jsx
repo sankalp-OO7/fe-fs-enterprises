@@ -87,7 +87,7 @@ const Navigation = () => {
           />
         </Toolbar>
       </AppBar>
-
+        
       <CartDialog {...cartProps} />
 
       <LogoutDialog

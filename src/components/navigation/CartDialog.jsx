@@ -19,7 +19,7 @@ import {
 import { ShoppingCart, Close } from "@mui/icons-material";
 import CartItem from "./CartItem";
 import axiosClient from "../../api/axiosClient";
-
+import useAuth from "../../context/useAuth";
 const CartDialog = ({
   cart,
   cartOpen,
@@ -32,6 +32,8 @@ const CartDialog = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
+  const { user } = useAuth();
+  const userRole = user?.role;
   const [formData, setFormData] = useState({
     customerName: "",
     gstNo: "",
@@ -49,7 +51,8 @@ const CartDialog = ({
 
   const validateGST = (gst) => {
     if (!gst) return true; // GST is optional
-    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    const gstRegex =
+      /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
     return gstRegex.test(gst);
   };
 
@@ -80,14 +83,14 @@ const CartDialog = ({
 
     // GST validation (optional but must be valid if provided)
     if (formData.gstNo.trim() && !validateGST(formData.gstNo)) {
-      newErrors.gstNo = "Invalid GST format";
+      newErrors.gstNo = "Invalid GST format ex 22AAAAA0000A1Z5";
     }
 
     // Address validation
     if (!formData.shippingAddress.trim()) {
       newErrors.shippingAddress = "Shipping address is required";
     } else if (!validateAddress(formData.shippingAddress)) {
-      newErrors.shippingAddress = "Address must be at least 10 characters";
+      newErrors.shippingAddress = "Address must be at least 5 characters";
     }
 
     setErrors(newErrors);
@@ -96,7 +99,7 @@ const CartDialog = ({
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Special handling for mobile number - only allow digits
     if (name === "mobileNo") {
       const digitsOnly = value.replace(/\D/g, "");
@@ -133,7 +136,7 @@ const CartDialog = ({
 
   // Calculate total cart value
   const getTotalCartValue = () => {
-    return cart.reduce((sum, item) => {
+    return cart?.reduce((sum, item) => {
       const price = getPriceByBillType(item.variant, formData.billType);
       return sum + price * item.quantity;
     }, 0);
@@ -165,9 +168,9 @@ const CartDialog = ({
         items: cart.map((item) => {
           const price = getPriceByBillType(item.variant, formData.billType);
           return {
-            productId: item.product.productDetails.id,
-            variantId: item.variant._id,
-            quantity: item.quantity,
+            productId: item?.product?.productDetails.id,
+            variantId: item?.variant._id,
+            quantity: item?.quantity,
             price: price,
           };
         }),
@@ -176,7 +179,7 @@ const CartDialog = ({
       };
 
       const response = await axiosClient.post("/orders", payload);
-      
+
       if (response.status === 201) {
         alert("Order placed successfully!");
         clearCart();
@@ -195,14 +198,19 @@ const CartDialog = ({
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "An error occurred during checkout.");
+      setError(
+        err.response?.data?.message || "An error occurred during checkout.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   // Check if mobile view
-  const isMobile = window.innerWidth < 600;
+  const isMobile =
+  typeof window !== "undefined"
+    ? window.innerWidth < 600
+    : false;
 
   return (
     <Dialog
@@ -264,7 +272,7 @@ const CartDialog = ({
       </DialogTitle>
 
       <DialogContent sx={{ p: isMobile ? 2 : 3 }}>
-        {cart.length === 0 ? (
+        {cart?.length === 0 ? (
           <Box sx={{ p: isMobile ? 4 : 6, textAlign: "center" }}>
             <ShoppingCart
               sx={{
@@ -284,11 +292,7 @@ const CartDialog = ({
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               Add some products to get started!
             </Typography>
-            <Button
-              variant="contained"
-              onClick={closeCart}
-              sx={{ mt: 3 }}
-            >
+            <Button variant="contained" onClick={closeCart} sx={{ mt: 3 }}>
               Continue Shopping
             </Button>
           </Box>
@@ -308,7 +312,7 @@ const CartDialog = ({
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
                 Customer Details
               </Typography>
-              
+
               <Stack spacing={2}>
                 <TextField
                   label="Customer Name"
@@ -351,20 +355,26 @@ const CartDialog = ({
                   placeholder="22AAAAA0000A1Z5"
                 />
 
-                <Stack 
-                  direction={isMobile ? "column" : "row"} 
+                <Stack
+                  direction={isMobile ? "column" : "row"}
                   spacing={isMobile ? 1 : 2}
                 >
                   <FormControl fullWidth size="small">
                     <InputLabel>Bill Type</InputLabel>
+
                     <Select
                       name="billType"
-                      value={formData.billType}
+                      value={
+                        userRole === "viewer" ? "INVOICE" : formData.billType
+                      }
                       onChange={handleInputChange}
                       label="Bill Type"
+                      disabled={userRole === "viewer"}
                     >
                       <MenuItem value="INVOICE">Invoice</MenuItem>
-                      <MenuItem value="SPECIAL PRICE">Special Price</MenuItem>
+                      {userRole !== "viewer" && (
+                        <MenuItem value="SPECIAL PRICE">Special Price</MenuItem>
+                      )}
                     </Select>
                   </FormControl>
 
@@ -402,7 +412,7 @@ const CartDialog = ({
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
               Cart Items ({cart.length})
             </Typography>
-            
+
             <List
               sx={{
                 maxHeight: isMobile ? 250 : 350,
@@ -452,13 +462,22 @@ const CartDialog = ({
                     <Typography variant="body2" color="text.secondary">
                       Bill Type
                     </Typography>
-                    <Typography variant={isMobile ? "body1" : "h6"} sx={{ fontWeight: 700 }}>
-                      {formData.billType === "INVOICE" ? "Invoice" : "Special Price"}
+                    <Typography
+                      variant={isMobile ? "body1" : "h6"}
+                      sx={{ fontWeight: 700 }}
+                    >
+                      {formData.billType === "INVOICE"
+                        ? "Invoice"
+                        : "Special Price"}
                     </Typography>
                   </Box>
 
                   <Box sx={{ width: isMobile ? "100%" : "auto" }}>
-                    <Typography variant="body2" color="text.secondary" align={isMobile ? "left" : "right"}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      align={isMobile ? "left" : "right"}
+                    >
                       Total Amount
                     </Typography>
                     <Typography
@@ -471,9 +490,9 @@ const CartDialog = ({
                 </Stack>
 
                 {error && (
-                  <Alert 
-                    severity="error" 
-                    sx={{ 
+                  <Alert
+                    severity="error"
+                    sx={{
                       borderRadius: 1,
                       fontSize: isMobile ? "0.875rem" : "1rem",
                     }}
@@ -483,8 +502,8 @@ const CartDialog = ({
                   </Alert>
                 )}
 
-                <Stack 
-                  direction={isMobile ? "column-reverse" : "row"} 
+                <Stack
+                  direction={isMobile ? "column-reverse" : "row"}
                   spacing={2}
                 >
                   <Button
@@ -506,10 +525,10 @@ const CartDialog = ({
                     variant="contained"
                     onClick={handleCheckout}
                     disabled={
-                      loading || 
-                      !formData.customerName || 
-                      !formData.mobileNo || 
-                      !formData.shippingAddress || 
+                      loading ||
+                      !formData.customerName ||
+                      !formData.mobileNo ||
+                      !formData.shippingAddress ||
                       cart.length === 0
                     }
                     sx={{

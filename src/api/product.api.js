@@ -18,6 +18,11 @@ export const fetchProductWithVariants = async (productId) => {
   };
 };
 
+export const deleteProductWithVarients = async (proddcutId) => {
+  const res = await axiosClient.delete(`/products/${proddcutId}`);
+  return res.data;
+};
+
 export const updateProductAPI = async (productId, productData) => {
   const res = await axiosClient.put(`/products/${productId}`, productData);
   return res.data;

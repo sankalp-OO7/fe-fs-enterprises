@@ -408,7 +408,7 @@ const AdminMemoOrdersPage = () => {
       setStatusUpdateLoading(false);
     }
   };
-
+console.log("selectedOrder", selectedOrder);
   const getStatusChip = (status) => {
     const statusConfig = {
       Pending: { color: "warning", icon: "⏳" },
@@ -927,7 +927,7 @@ const AdminMemoOrdersPage = () => {
                                 variant="body2"
                                 sx={{ fontWeight: 600 }}
                               >
-                                {item.productId?.name || "Product N/A"}
+                                {item.productId?.productName || "Product N/A"}
                               </Typography>
                               <Chip
                                 label={`Qty: ${item.quantity}`}

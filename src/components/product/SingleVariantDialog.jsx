@@ -14,7 +14,7 @@ import {
   Paper,
   Divider,
 } from "@mui/material";
-
+import useAuth from "../../context/useAuth";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -22,7 +22,7 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 
 const SingleVariantDialog = ({ open, onClose, variant, onAddToCart }) => {
   const [qty, setQty] = useState(1);
-
+const { isAuthenticated, isAdmin, user } = useAuth();
   useEffect(() => {
     if (open) {
       setQty(1);
@@ -35,6 +35,12 @@ const SingleVariantDialog = ({ open, onClose, variant, onAddToCart }) => {
     onAddToCart(variant, qty);
     onClose();
   };
+  const showInvoice =
+    isAuthenticated && (user?.role === "admin" || user?.role === "user" || user?.role === "viewer");
+  const showEstimate =
+    isAuthenticated &&
+    (user?.role === "admin" ||
+      user?.role === "user");
 
   return (
     <Dialog
@@ -81,26 +87,30 @@ const SingleVariantDialog = ({ open, onClose, variant, onAddToCart }) => {
             <Typography variant="body2" color="text.secondary">
               {variant.variantDescription || "No description available"}
             </Typography>
-
+          {showInvoice && (
             <Typography
               variant="h6"
               sx={{ color: "primary.main", mt: 1, fontWeight: 700 }}
             >
              Invoice Price: ₹{variant.invoicePrice?.toFixed(2)}
             </Typography>
+          )}
+          
+          {showEstimate && (
             <Typography
               variant="h6"
               sx={{ color: "secondary.main", mt: 1, fontWeight: 700 }}
             >
              Estimate Price: ₹{variant.estimatePrice?.toFixed(2)}
             </Typography>
+          )}
 
             <Typography
               variant="caption"
               color="text.secondary"
               sx={{ fontWeight: 600 }}
             >
-              Stock: {variant.stockQty}
+              Stock: {variant?.stockQty ?? "N/A"}
             </Typography>
           </Box>
         </Paper>
