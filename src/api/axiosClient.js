@@ -22,9 +22,6 @@ const axiosClient = axios.create({
 // Separate client for file uploads (no withCredentials)
 export const uploadClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "multipart/form-data",
-  },
   withCredentials: false, // Important: set to false for uploads
   timeout: 60000, // 60 second timeout for uploads
 });
