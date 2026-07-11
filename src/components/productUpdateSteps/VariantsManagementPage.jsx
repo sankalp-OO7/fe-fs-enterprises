@@ -378,7 +378,7 @@ const VariantsManagementPage = memo(
             sx={{ mb: 3, borderRadius: 2 }}
             action={
               <Stack direction="row" spacing={1}>
-                <Button
+                {/* <Button
                   onClick={() => onSave(false)}
                   variant="outlined"
                   size="small"
@@ -388,7 +388,7 @@ const VariantsManagementPage = memo(
                   disabled={isSaving}
                 >
                   Save Variants
-                </Button>
+                </Button> */}
                 <Button
                   onClick={() => handleSaveAndExit(true)}
                   variant="contained"
