@@ -101,7 +101,7 @@ const { isAuthenticated, isAdmin, user } = useAuth();
               variant="h6"
               sx={{ color: "secondary.main", mt: 1, fontWeight: 700 }}
             >
-             Estimate Price: ₹{variant.estimatePrice?.toFixed(2)}
+             Special Price: ₹{variant.estimatePrice?.toFixed(2)}
             </Typography>
           )}
 

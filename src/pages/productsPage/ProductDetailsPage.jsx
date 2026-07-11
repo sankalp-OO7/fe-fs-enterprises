@@ -576,7 +576,7 @@ const ProductDetailsPage = () => {
                                 color="text.secondary"
                                 fontWeight={600}
                               >
-                                Est. Price
+                                Special Price
                               </Typography>
                               <Typography
                                 fontWeight={800}
