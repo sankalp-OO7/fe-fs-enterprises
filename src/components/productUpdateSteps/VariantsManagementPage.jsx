@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, memo } from "react";
+import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
 import {
   Paper,
   Typography,
@@ -30,6 +30,7 @@ import {
   FilterList,
   Sort,
   Refresh,
+  Error,
 } from "@mui/icons-material";
 import VariantsTable from "./VariantsTable";
 import VariantStats from "./VariantStats";
@@ -37,7 +38,6 @@ import BulkEditDialog from "./BulkEditDialog";
 import VariantFormDialog from "./VariantFormDialog";
 import ImagePreviewDialog from "./ImagePreviewDialog";
 import { styled } from "@mui/material/styles";
-
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
   clipPath: "inset(50%)",
@@ -61,6 +61,8 @@ const VariantsManagementPage = memo(
     isDirty,
     navigate,
     switchToProduct,
+    validationErrors = [],
+    isValid = true,
   }) => {
     const [selectedVariants, setSelectedVariants] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -69,6 +71,7 @@ const VariantsManagementPage = memo(
     const [bulkEditDialog, setBulkEditDialog] = useState(false);
     const [bulkEditField, setBulkEditField] = useState("");
     const [bulkEditValue, setBulkEditValue] = useState("");
+    const [localErrors, setLocalErrors] = useState([]);
     const [imageDialog, setImageDialog] = useState({
       open: false,
       currentImage: "",
@@ -206,19 +209,50 @@ const VariantsManagementPage = memo(
       return errors;
     }, [variants]);
 
+    // In VariantsManagementPage.jsx - Replace the handleSaveAndExit function
     const handleSaveAndExit = useCallback(
       async (includeProduct = false) => {
-        const errors = validateVariants();
-        if (errors.length > 0) {
-          alert(`Cannot save: \n${errors.join("\n")}`);
+        // Small delay to allow validation to update
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Double-check validation before saving
+        if (!isValid) {
+          const errorMessages = validationErrors
+            .filter((e) => e.severity === "error")
+            .map((e) => e.message)
+            .join("\n• ");
+
+          if (window.setSnackbar) {
+            window.setSnackbar({
+              open: true,
+              message: `Please fix ${validationErrors.filter((e) => e.severity === "error").length} error(s) before saving`,
+              severity: "error",
+            });
+          }
+
+          return;
+        }
+
+        // Additional validation check
+        const localValidationErrors = validateVariants();
+        if (localValidationErrors.length > 0) {
+          alert(`Cannot save: \n${localValidationErrors.join("\n")}`);
           return;
         }
 
         await onSave(includeProduct);
-        setTimeout(() => navigate(-1), 1000);
+
+        if (isValid) {
+          setTimeout(() => navigate(-1), 1000);
+        }
       },
-      [onSave, navigate, validateVariants],
+      [onSave, navigate, validateVariants, isValid, validationErrors],
     );
+
+    useEffect(() => {
+      setLocalErrors(validationErrors);
+    }, [validationErrors]);
+
     return (
       <Box>
         {/* Header Section */}
@@ -277,6 +311,47 @@ const VariantsManagementPage = memo(
             )}
           />
         </Paper>
+        {/* Validation Error Banner - Place after the Stats section */}
+        {validationErrors.length > 0 && (
+          <Alert
+            severity={
+              validationErrors.some((e) => e.severity === "error")
+                ? "error"
+                : "warning"
+            }
+            sx={{
+              mb: 3,
+              borderRadius: 2,
+              "& .MuiAlert-message": {
+                width: "100%",
+              },
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" fontWeight="bold">
+                  {validationErrors.some((e) => e.severity === "error")
+                    ? ` ${validationErrors.filter((e) => e.severity === "error").length} error(s) found`
+                    : " Warnings"}
+                </Typography>
+                <Box component="ul" sx={{ m: 0, pl: 2, mt: 0.5 }}>
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>
+                      <Typography
+                        variant="body2"
+                        color={
+                          error.severity === "error" ? "error" : "warning.main"
+                        }
+                      >
+                        {error.message}
+                      </Typography>
+                    </li>
+                  ))}
+                </Box>
+              </Box>
+            </Box>
+          </Alert>
+        )}
 
         {/* Controls Section */}
         <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
@@ -393,11 +468,9 @@ const VariantsManagementPage = memo(
                   onClick={() => handleSaveAndExit(true)}
                   variant="contained"
                   size="small"
-                  startIcon={
-                    isSaving ? <CircularProgress size={16} /> : <CheckCircle />
-                  }
-                  disabled={isSaving}
-                  color="success"
+                  startIcon={!isValid ? <Error /> : <CheckCircle />}
+                  disabled={isSaving || !isValid} //  Disable if not valid
+                  color={!isValid ? "error" : "success"} // Show red if errors
                 >
                   Save All & Exit
                 </Button>
@@ -429,7 +502,6 @@ const VariantsManagementPage = memo(
               }
             }}
             onRemoveVariant={(variantId) => {
-          
               // Filter out the variant and notify parent
               const updatedVariants = variants.filter(
                 (v) => v.id !== variantId,
@@ -443,7 +515,7 @@ const VariantsManagementPage = memo(
                   v.id === id
                     ? {
                         ...v,
-                        imageUrl: v?.imageUrl ??  productData?.imageUrl,
+                        imageUrl: v?.imageUrl ?? productData?.imageUrl,
                         hasCustomImage: false,
                       }
                     : v,
@@ -451,13 +523,13 @@ const VariantsManagementPage = memo(
               )
             }
             onDuplicateVariant={(variant) => {
-              
-
               // Create a new variant with unique values
+              const { _id, id, ...variantWithoutId } = variant;
+
               const newVariant = {
-                ...variant,
+                ...variantWithoutId,
                 id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`, // Unique ID
-                _id: undefined, // Remove MongoDB ID
+                // _id: undefined, // Remove MongoDB ID
                 variantName: `${variant.variantName || "Variant"} (Copy)`,
                 itemCode: "", // IMPORTANT: Clear itemCode to avoid duplicate key error
                 isNew: true,
@@ -483,7 +555,7 @@ const VariantsManagementPage = memo(
           />
         </Paper>
 
-        {/* Save Actions Section */}
+        {/* Save Actions Section - Update the button */}
         <Paper sx={{ p: 3, borderRadius: 2, bgcolor: "grey.50" }}>
           <Stack
             direction="row"
@@ -496,6 +568,21 @@ const VariantsManagementPage = memo(
                 {variants.length} variants • Last updated:{" "}
                 {new Date().toLocaleDateString()}
               </Typography>
+              {!isValid &&
+                validationErrors.some((e) => e.severity === "error") && (
+                  <Typography
+                    variant="caption"
+                    color="error"
+                    sx={{ display: "block", mt: 0.5 }}
+                  >
+                    ⚠️{" "}
+                    {
+                      validationErrors.filter((e) => e.severity === "error")
+                        .length
+                    }{" "}
+                    error(s) must be fixed before saving
+                  </Typography>
+                )}
             </Box>
 
             <Stack direction="row" spacing={2}>
@@ -507,16 +594,44 @@ const VariantsManagementPage = memo(
                 Cancel
               </Button>
               <Button
-                onClick={() => handleSaveAndExit(true)}
+                onClick={() => {
+                  // Force validation by updating state
+                  onUpdate([...variants]);
+                  // Small delay then save
+                  setTimeout(() => {
+                    handleSaveAndExit(true);
+                  }, 150);
+                }}
                 variant="contained"
-                startIcon={<CheckCircle />}
-                disabled={isSaving}
-                color="success"
+                startIcon={!isValid ? <Error /> : <CheckCircle />}
+                disabled={isSaving || !isValid}
+                color={!isValid ? "error" : "success"}
+                sx={{
+                  opacity: !isValid ? 0.7 : 1,
+                  "&:hover": {
+                    opacity: !isValid ? 0.7 : 1,
+                  },
+                }}
               >
-                Save All & Exit
+                {!isValid
+                  ? `Fix ${validationErrors.filter((e) => e.severity === "error").length} Error${validationErrors.filter((e) => e.severity === "error").length > 1 ? "s" : ""}`
+                  : "Save All & Exit"}
               </Button>
             </Stack>
           </Stack>
+
+          {!isValid && (
+            <Box sx={{ mt: 1 }}>
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
+                <Error fontSize="small" />
+                Please fix all errors before saving
+              </Typography>
+            </Box>
+          )}
         </Paper>
 
         {/* Dialogs */}

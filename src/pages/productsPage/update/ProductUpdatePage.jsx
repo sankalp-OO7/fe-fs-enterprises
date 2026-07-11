@@ -38,7 +38,7 @@ import {
   uploadImageDirectAPI,
 } from "../../../api/product.api";
 import ConfirmDialog from "../../../components/ConfirmDialog";
-
+import { useProductValidation } from "../../../hooks/useProductValidation";
 // Lazy load components
 const ProductDetailsPage = lazy(
   () => import("../../../components/productUpdateSteps/ProductDetailsPage"),
@@ -127,7 +127,12 @@ const ProductUpdatePage = () => {
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
   });
- 
+  const { errors, isValid, errorCount } = useProductValidation(
+    productData,
+    variants,
+    deletedVariants,
+  );
+
   // React Query Mutations
   const updateProductMutation = useMutation({
     mutationFn: (data) => updateProductAPI(productId, data),
@@ -161,6 +166,27 @@ const ProductUpdatePage = () => {
       setIsDirty(false);
     },
     onError: (error) => {
+      console.error("Bulk update error:", error);
+
+      // Check if it's a duplicate variant name error
+      if (error.response?.status === 409 && error.response?.data?.message) {
+        const errorMessage = error.response.data.message;
+        if (errorMessage.includes("already exists for this product")) {
+          // Extract the duplicate name from error
+          const duplicateName = errorMessage.replace(
+            /Variant name "|" already exists for this product/g,
+            "",
+          );
+
+          setSnackbar({
+            open: true,
+            message: `Duplicate variant name: "${duplicateName}". Please rename the variant before saving.`,
+            severity: "error",
+          });
+          return;
+        }
+      }
+
       setSnackbar({
         open: true,
         message: `Bulk update failed: ${error.message}`,
@@ -169,76 +195,95 @@ const ProductUpdatePage = () => {
     },
   });
 
-const handleImageUpload = async (file, target = "product") => {
-  if (!file) return;
+  const handleImageUpload = async (file, target = "product") => {
+    if (!file) return;
 
-  setImageUploading(true);
+    setImageUploading(true);
 
-  try {
-    const validation = validateImage(file);
-    if (!validation.isValid) {
-      throw new Error(validation.errors.join(", "));
-    }
+    try {
+      const validation = validateImage(file);
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(", "));
+      }
 
-    setSnackbar({ open: true, message: "Optimizing image...", severity: "info" });
+      setSnackbar({
+        open: true,
+        message: "Optimizing image...",
+        severity: "info",
+      });
 
-    const optimizedFile = await optimizeImage(file);
+      const optimizedFile = await optimizeImage(file);
 
-    const formData = new FormData();
-    formData.append("image", optimizedFile);
-    formData.append(
-      "folder",
-      target === "product" ? "products/main" : "products/variants",
-    );
-
-    setSnackbar({ open: true, message: "Uploading to server...", severity: "info" });
-
-    const response = await uploadImageDirectAPI(formData);
-
-    if (!response.success) {
-      throw new Error(response.message || "Upload failed");
-    }
-
-    const imageUrl = response.data.url;
-
-    if (target === "product") {
-      const updatedProductData = { ...productData, imageUrl };
-      setProductData(updatedProductData);
-
-      const updatedVariants = variants.map((variant) => ({
-        ...variant,
-        imageUrl: !variant.hasCustomImage ? imageUrl : variant.imageUrl,
-      }));
-      setVariants(updatedVariants);
-
-      setSnackbar({ open: true, message: "Product image updated successfully", severity: "success" });
-    } else {
-      const updatedVariants = variants.map((variant) =>
-        variant.id === target
-          ? { ...variant, imageUrl, hasCustomImage: true }
-          : variant,
+      const formData = new FormData();
+      formData.append("image", optimizedFile);
+      formData.append(
+        "folder",
+        target === "product" ? "products/main" : "products/variants",
       );
-      setVariants(updatedVariants);
 
-      setSnackbar({ open: true, message: "Variant image updated successfully", severity: "success" });
+      setSnackbar({
+        open: true,
+        message: "Uploading to server...",
+        severity: "info",
+      });
+
+      const response = await uploadImageDirectAPI(formData);
+
+      if (!response.success) {
+        throw new Error(response.message || "Upload failed");
+      }
+
+      const imageUrl = response.data.url;
+
+      if (target === "product") {
+        const updatedProductData = { ...productData, imageUrl };
+        setProductData(updatedProductData);
+
+        const updatedVariants = variants.map((variant) => ({
+          ...variant,
+          imageUrl: !variant.hasCustomImage ? imageUrl : variant.imageUrl,
+        }));
+        setVariants(updatedVariants);
+
+        setSnackbar({
+          open: true,
+          message: "Product image updated successfully",
+          severity: "success",
+        });
+      } else {
+        const updatedVariants = variants.map((variant) =>
+          variant.id === target
+            ? { ...variant, imageUrl, hasCustomImage: true }
+            : variant,
+        );
+        setVariants(updatedVariants);
+
+        setSnackbar({
+          open: true,
+          message: "Variant image updated successfully",
+          severity: "success",
+        });
+      }
+
+      setIsDirty(true);
+      return imageUrl; // ← ADDED
+    } catch (error) {
+      console.error("Image upload error:", error);
+      setSnackbar({
+        open: true,
+        message: `Upload failed: ${error.message}`,
+        severity: "error",
+      });
+      throw error;
+    } finally {
+      setImageUploading(false);
     }
-
-    setIsDirty(true);
-    return imageUrl; // ← ADDED
-
-  } catch (error) {
-    console.error("Image upload error:", error);
-    setSnackbar({ open: true, message: `Upload failed: ${error.message}`, severity: "error" });
-    throw error;
-  } finally {
-    setImageUploading(false);
-  }
-};
+  };
   // Initialize form data when data is loaded
   useEffect(() => {
     if (productResponse && !productData) {
       const { productDetails, variants: fetchedVariants } = productResponse;
-      
+
       setProductData({
         productName: productDetails.productName || "",
         description: productDetails.description || "",
@@ -249,7 +294,8 @@ const handleImageUpload = async (file, target = "product") => {
       });
       if (fetchedVariants && Array.isArray(fetchedVariants)) {
         const processedVariants = fetchedVariants.map((variant) => ({
-          id: variant.id || variant._id, 
+          id: variant.id || variant._id,
+          _id: variant._id || variant.id,
           variantName: variant.variantName || "",
           variantDescription: variant.variantDescription || "",
           brand: variant.brand || "Others",
@@ -277,14 +323,11 @@ const handleImageUpload = async (file, target = "product") => {
   // Replace your handleVariantsUpdate function with this:
   const handleVariantsUpdate = useCallback(
     (newVariants, deletedVariantId = null) => {
- 
-
       // Update the variants state first
       setVariants(newVariants);
 
       // Then track deletion if needed
       if (deletedVariantId) {
-
         // Check if it's a valid MongoDB ObjectId (not a temp ID like 'new-xxx')
         const isValidObjectId =
           deletedVariantId && /^[0-9a-fA-F]{24}$/.test(deletedVariantId);
@@ -300,7 +343,7 @@ const handleImageUpload = async (file, target = "product") => {
           });
         } else {
           console.log(
-            "⚠️ Not a valid ObjectId (probably a temp variant), skipping deletion tracking",
+            " Not a valid ObjectId (probably a temp variant), skipping deletion tracking",
           );
         }
       }
@@ -318,8 +361,32 @@ const handleImageUpload = async (file, target = "product") => {
   };
 
   // Save all variants and optionally product
-  // Update handleSaveVariants to include deleted variants
+  // Update handleSaveVariants to include deleted variants Replace the handleSaveVariants function
   const handleSaveVariants = async (includeProduct = false) => {
+    // Get fresh validation state
+    const currentErrors = errors;
+    const currentIsValid = isValid;
+    const currentErrorCount = errorCount;
+
+    // Check validation before saving
+    if (!currentIsValid) {
+      // Show detailed error in snackbar
+      const errorMessages = currentErrors
+        .filter((e) => e.severity === "error")
+        .map((e) => e.message)
+        .join("; ");
+
+      setSnackbar({
+        open: true,
+        message: `Cannot save: ${currentErrorCount} error(s) found. ${errorMessages}`,
+        severity: "error",
+      });
+
+      // Also log to console for debugging
+      console.error("❌ Save blocked - Validation errors:", currentErrors);
+      return;
+    }
+
     if (!variants.length && !deletedVariants.length) {
       setSnackbar({
         open: true,
@@ -334,22 +401,31 @@ const handleImageUpload = async (file, target = "product") => {
       const variantsUpdateData = variants.map((variant) => {
         const { id, isNew, hasCustomImage, ...variantData } = variant;
 
-        // Check if this is a new variant (has temp ID like 'new-' or 'copy-')
-        const isNewVariant =
-          id &&
-          (id.toString().startsWith("new-") ||
-            id.toString().startsWith("copy-"));
-
-        // For new variants, don't send _id
-        // For existing variants, send _id if it's a valid ObjectId
-        const isValidObjectId = id && /^[0-9a-fA-F]{24}$/.test(id);
-
-        return {
+        // IMPORTANT: Always keep _id if it exists
+        const variantToSend = {
           ...variantData,
-          // Only include _id for existing variants with valid ObjectId
-          ...(isValidObjectId && !isNewVariant ? { _id: id } : {}),
         };
+
+        // If variant has _id, include it
+        if (variant._id) {
+          variantToSend._id = variant._id;
+        }
+
+        // If variant has id and no _id, use id as _id
+        if (!variant._id && id && /^[0-9a-fA-F]{24}$/.test(id)) {
+          variantToSend._id = id;
+        }
+
+        return variantToSend;
       });
+      // Check for variants without IDs
+      const missingIds = variantsUpdateData.filter((v) => !v._id);
+      if (missingIds.length > 0) {
+        console.warn(
+          "⚠️ Variants without IDs:",
+          missingIds.map((v) => v.variantName),
+        );
+      }
 
       let updateData;
       if (includeProduct && productData) {
@@ -357,22 +433,34 @@ const handleImageUpload = async (file, target = "product") => {
         updateData = {
           product: productUpdateData,
           variants: variantsUpdateData,
-          variantsToDelete: deletedVariants, // Send IDs to delete
+          variantsToDelete: deletedVariants,
         };
       } else {
         updateData = {
           variants: variantsUpdateData,
-          variantsToDelete: deletedVariants, // Send IDs to delete
+          variantsToDelete: deletedVariants,
         };
       }
 
-
       await bulkUpdateMutation.mutateAsync(updateData);
-
-      // Clear deleted variants after successful save
       setDeletedVariants([]);
     } catch (error) {
-      console.error("Save variants error:", error);
+      console.error("❌ Save variants error:", error);
+
+      // Handle specific error types
+      if (error.response?.status === 409) {
+        setSnackbar({
+          open: true,
+          message: `Duplicate variant found: ${error.response?.data?.message || "Please check for duplicate names or codes"}`,
+          severity: "error",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: `Save failed: ${error.message}`,
+          severity: "error",
+        });
+      }
     }
   };
 
@@ -563,6 +651,8 @@ const handleImageUpload = async (file, target = "product") => {
             isDirty={isDirty}
             navigate={navigate}
             switchToProduct={() => setActiveTab(0)}
+            validationErrors={errors} // ADD THIS
+            isValid={isValid}
           />
         )}
       </Suspense>
@@ -592,7 +682,10 @@ const handleImageUpload = async (file, target = "product") => {
         cancelLabel="Stay"
         confirmColor="warning"
         icon="warning"
-        onConfirm={() => { setConfirmLeave(false); navigate(-1); }}
+        onConfirm={() => {
+          setConfirmLeave(false);
+          navigate(-1);
+        }}
         onCancel={() => setConfirmLeave(false)}
       />
 

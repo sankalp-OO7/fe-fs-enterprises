@@ -36,47 +36,43 @@ export const updateVariantAPI = async (variantId, variantData) => {
 // Base64 upload (legacy - keep for compatibility)
 export const uploadImageAPI = async (payload) => {
   try {
-   
-    
-    const response = await fetch('/api/upload/upload', {
-      method: 'POST',
+    const response = await fetch("/api/upload/upload", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
     });
-    
+
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Upload failed');
+      throw new Error(error.message || "Upload failed");
     }
-    
+
     return await response.json();
   } catch (error) {
-    console.error('Base64 upload API error:', error);
+    console.error("Base64 upload API error:", error);
     throw error;
   }
 };
 
-
-
 export const uploadImageDirectAPI = async (formData) => {
   try {
-    
     // Use the dedicated upload client
-    const response = await uploadClient.post('/upload/upload-direct', formData);
+    const response = await uploadClient.post("/upload/upload-direct", formData);
     return response.data;
-    
   } catch (error) {
-    console.error('Direct upload API error:', error);
-    
+    console.error("Direct upload API error:", error);
+
     // Provide more detailed error message
     if (error.response) {
       // The request was made and the server responded with a status code
-      throw new Error(`Upload failed: ${error.response.data.message || error.response.statusText}`);
+      throw new Error(
+        `Upload failed: ${error.response.data.message || error.response.statusText}`,
+      );
     } else if (error.request) {
       // The request was made but no response was received
-      throw new Error('Upload failed: No response from server');
+      throw new Error("Upload failed: No response from server");
     } else {
       // Something happened in setting up the request
       throw new Error(`Upload failed: ${error.message}`);
@@ -89,47 +85,46 @@ export const uploadImageDirectAPI = async (formData) => {
 // Bulk update product and variants
 export const bulkUpdateProductWithVariantsAPI = async (productId, data) => {
   try {
-
-    
     // Clean up variant data before sending
     const cleanedData = { ...data };
-    
+
     if (cleanedData.variants) {
-      cleanedData.variants = cleanedData.variants.map(variant => {
+      cleanedData.variants = cleanedData.variants.map((variant) => {
         const { id, isNew, hasCustomImage, ...rest } = variant;
-        
+
         // Only include _id if it's a valid MongoDB ObjectId (24 hex chars)
         const isValidObjectId = id && /^[0-9a-fA-F]{24}$/.test(id);
-        
+
         return {
           ...rest,
           // Only send _id for existing variants with valid ObjectId
-          ...(isValidObjectId ? { _id: id } : {})
+          ...(isValidObjectId ? { _id: id } : {}),
         };
       });
     }
-    
-    
-    const response = await axiosClient.put(`/products/${productId}/bulk-update`, cleanedData, {
-      timeout: 30000,
-    });
-    
+
+    const response = await axiosClient.put(
+      `/products/${productId}/bulk-update`,
+      cleanedData,
+      {
+        timeout: 30000,
+      },
+    );
+
     return response.data;
-    
   } catch (error) {
-    console.error('Bulk update API error:', error);
-    
-    let errorMessage = 'Bulk update failed';
+    console.error("Bulk update API error:", error);
+
+    let errorMessage = "Bulk update failed";
     if (error.response?.data?.message) {
       errorMessage = error.response.data.message;
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
+
     throw new Error(errorMessage);
   }
 };
-
 
 // ===================== CATEGORY APIs =====================
 
@@ -177,7 +172,10 @@ export const createCategoryAPI = async (categoryData) => {
  */
 export const updateCategoryAPI = async (categoryId, categoryData) => {
   try {
-    const res = await axiosClient.put(`/categories/${categoryId}`, categoryData);
+    const res = await axiosClient.put(
+      `/categories/${categoryId}`,
+      categoryData,
+    );
     return res.data;
   } catch (error) {
     console.error("Update category error:", error);
@@ -204,7 +202,7 @@ export const deleteCategoryAPI = async (categoryId) => {
 export const searchCategoriesAPI = async (searchTerm) => {
   try {
     const res = await axiosClient.get("/categories", {
-      params: { search: searchTerm }
+      params: { search: searchTerm },
     });
     return res.data.data;
   } catch (error) {
